@@ -1,7 +1,6 @@
 import tkinter as tk
 from typing import Optional
 
-from ui.project_hierarchy import ProjectHierarchy
 from ui.tree_viewable_item import TreeViewableItem
 
 class EnvironmentVariable(TreeViewableItem):
@@ -13,7 +12,8 @@ class EnvironmentVariable(TreeViewableItem):
   def get_item_options(self) -> tuple[str, Optional[tk.Image], bool]:
     return self.name, None, False
   
-  def refresh(self, hierarchy: ProjectHierarchy, parent_id: Optional[int]):
+  # can't use typing info fro hierarchy here :(
+  def refresh(self, hierarchy, parent_id: Optional[int]):
     if self.tree_id is None:
       self.tree_id = hierarchy.add_item(parent_id, self)
 
@@ -45,7 +45,8 @@ class Environment(TreeViewableItem):
   def get_item_options(self) -> tuple[str, Optional[tk.Image], bool]:
     return self.name, None, False
   
-  def refresh(self, hierarchy: ProjectHierarchy, parent_id: Optional[int]):
+  # can't use typing info for hierarchy here :(
+  def refresh(self, hierarchy, parent_id: Optional[int]):
     super().refresh(hierarchy, parent_id)
     for _, variable in self.variables.items():
       variable.refresh(hierarchy, self.tree_id)
