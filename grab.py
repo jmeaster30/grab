@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 
 from model.project import Project
 from model.request import Request
@@ -30,15 +31,20 @@ class Grab(tk.Tk):
     self.geometry(f'{self.layout_config.width}x{self.layout_config.height}')
     self.rowconfigure(0, weight=1)
     self.columnconfigure(0, weight=1)
-    self.columnconfigure(1, weight=2)
 
-    self.project_hierarchy = ProjectHierarchy(self)
-    self.project_hierarchy.grid(row=0, column=0, sticky=tk.NSEW)
+    self.paned_window = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
+    self.paned_window.grid(row=0, column=0, sticky=tk.NSEW)
 
-    self.workarea = WorkArea(self)
-    self.workarea.grid(row=0, column=1, sticky=tk.NSEW)
+    self.project_hierarchy = ProjectHierarchy(self.paned_window)
+    self.project_hierarchy.pack(expand=True, fill=tk.BOTH)
+    self.paned_window.add(self.project_hierarchy)
+
+    self.workarea = WorkArea(self.paned_window)
+    self.workarea.pack(expand=True, fill=tk.BOTH)
+    self.paned_window.add(self.workarea)
 
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
+    self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
     project.refresh_project(self.project_hierarchy)
     
 if __name__ == "__main__":

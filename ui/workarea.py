@@ -33,6 +33,13 @@ class WorkArea(tk.Frame):
       self.environment_id_to_edit_area[environment.tree_id] = tab_frame
     self.notebook.select(tab_frame)
 
+  def review_environment_tabs(self, environments: list[Environment]):
+    alive_tabs = [env.tree_id for env in environments]
+    for editarea_id in self.environment_id_to_edit_area.keys():
+      if editarea_id not in alive_tabs:
+        self.notebook.forget(self.environment_id_to_edit_area[editarea_id])
+        del self.environment_id_to_edit_area[editarea_id]
+
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)
 

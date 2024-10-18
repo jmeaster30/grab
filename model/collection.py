@@ -1,7 +1,6 @@
 import tkinter as tk
 from typing import Optional
 from model.request import Request
-from ui.project_hierarchy import ProjectHierarchy
 from ui.tree_viewable_item import TreeViewableItem
 
 class Collection(TreeViewableItem):
@@ -16,7 +15,7 @@ class Collection(TreeViewableItem):
   def get_item_options(self) -> tuple[str, Optional[tk.Image], bool]:
     return self.name, None, False
 
-  def refresh(self, hierarchy: ProjectHierarchy, parent_id: Optional[int]):
+  def refresh(self, hierarchy, parent_id: Optional[int]):
     super().refresh(hierarchy, parent_id)
     for request in self.requests:
       request.refresh(hierarchy, self.tree_id)
