@@ -12,7 +12,6 @@ class LayoutConfig:
     self.style = ttk.Style()
     self.style.configure("Treeview", font=(None, self.fontSize), rowheight=int(self.fontSize * 3.2))
 
-
     #
     #  THE FOLLOWING IS ALL CONFIG FOR WorkArea SO THE TABS CAN HAVE A CLOSE BUTTON
     #

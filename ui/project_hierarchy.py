@@ -17,9 +17,9 @@ class ProjectHierarchy(tk.Frame):
     self.project_name_var = tk.StringVar()
     self.project_name_entry = ttk.Entry(self, textvariable=self.project_name_var)
     self.tree = ttk.Treeview(self, show='tree', selectmode='browse')
-    self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
+    self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.debug_view)
 
-    self.tree.configure(yscrollcommand=self.scrollbar.set)
+    self.tree.configure(yscrollcommand=self.debug_scroll_command)
     self.tree.bind('<Double-Button-1>', self.on_double_click)
     self.tree.bind('<<TreeviewSelect>>', self.on_tree_selection)
 
@@ -36,6 +36,20 @@ class ProjectHierarchy(tk.Frame):
     self.tree_viewable_item_map: dict[str, TreeViewableItem] = {}
     self.on_environment_variable_click_action = None
     self.on_environment_add_remove_action = None
+
+  def debug_scroll_command(self, *args):
+    print("debug scroll command")
+    print(args)
+    result = self.scrollbar.set(*args)
+    print(result)
+    return result
+  
+  def debug_view(self, *args):
+    print("debug view")
+    print(args)
+    result = self.tree.yview(*args)
+    print(result)
+    return result
 
   def on_double_click(self, event: tk.Event):
     tree_id = self.tree.identify_row(event.y)

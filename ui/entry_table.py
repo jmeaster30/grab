@@ -1,5 +1,9 @@
 import tkinter as tk
+from tkinter import ttk
 from typing import Callable, Optional
+
+from ui.scrollable_frame import ScrollableFrame
+from ui.scrollable_widget_list import ScrollableWidgetList
 
 class EntryTable(tk.Frame):
   def __init__(self, root, columns: tuple[str,...], initial_data: list[tuple[str,...]] = [], on_row_change: Optional[Callable[[int, int, list[str]], None]] = None):
@@ -8,11 +12,16 @@ class EntryTable(tk.Frame):
     self.heading_entry = EntryRow(self, -1, values=columns, editable=False)
     self.heading_entry.pack(fill=tk.X)
 
+    self.table_frame = ScrollableWidgetList(self)
+    self.table_frame.pack(expand=True, fill=tk.BOTH)
+
     self.variable_table: list[EntryRow] = []
     self.on_row_change: Optional[callable[[int, int, list[str]], None]] = on_row_change
 
     for row_idx in range(0, len(initial_data)):
-      row = EntryRow(self, row_idx, initial_data[row_idx], self.on_row_change)
+      #row = EntryRow(self, row_idx, initial_data[row_idx], self.on_row_change)
+      #row.pack(fill=tk.X)
+      row = EntryRow(self.table_frame, row_idx, initial_data[row_idx], self.on_row_change)
       row.pack(fill=tk.X)
       self.variable_table.append(row)
 
@@ -33,6 +42,24 @@ class EntryTable(tk.Frame):
       self.variable_table[idx].row_id -= 1
     return to_remove.values()
 
+  def highlight_row(self, row: tuple[str,...]):
+    try:
+      index = self.variable_table.index(row)
+      self.variable_table[index].highlight()
+    except ValueError:
+      return
+    
+  def unhighlight_row(self, row: tuple[str,...]):
+    try:
+      index = self.variable_table.index(row)
+      self.variable_table[index].unhighlight()
+    except ValueError:
+      return
+    
+  def unhighlight_all_rows(self):
+    for row in self.variable_table:
+      row.unhighlight()
+    
   def set_row_change_action(self, row_change_action: Callable[[int, int, list[str]], None]):
     self.on_row_change = row_change_action
     for entry_row in self.variable_table:
@@ -41,8 +68,10 @@ class EntryTable(tk.Frame):
 class EntryRow(tk.Frame):
   def __init__(self, root, row_id: int, values: tuple[str,...], on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = None, editable: bool = True):
     super().__init__(root)
+
     self.row_id = row_id
     self.editable = editable
+    self.highlighted = False
     self.internal_values: list[tuple[tk.StringVar, tk.Entry]] = []
     self.on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = on_row_change_action
     for idx in range(0, len(values)):
@@ -79,8 +108,25 @@ class EntryRow(tk.Frame):
       for entry in self.internal_values:
         entry[1].configure(state='readonly', relief='raised')
 
+  def highlight(self):
+    self.highlighted = True
+    self.configure(background="#ff0000", borderwidth=2)
+
+  def unhighlight(self):
+    self.highlighted = False
+    self.configure(background="#000000", borderwidth=0)
+
   def set_row_change_action(self, action: Callable[[int, int, list[str]], None]):
     self.on_row_change_action = action
 
   def __bind_row_change(self, col_idx: int) -> Callable[[tk.Event], None]:
     return lambda event: self.on_row_change_action(self.row_id, col_idx, self.values()) if self.on_row_change_action is not None else None
+
+  def __eq__(self, other):
+    if isinstance(other, self.__class__):
+      return self.values() == other.values()
+    if isinstance(other, list):
+      return self.values() == other
+    if isinstance(other, tuple):
+      return self.values() == list(other)
+    return False
