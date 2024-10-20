@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional
 
-from ui.scrollable_frame import ScrollableFrame
 from ui.scrollable_widget_list import ScrollableWidgetList
 
 class EntryTable(tk.Frame):
