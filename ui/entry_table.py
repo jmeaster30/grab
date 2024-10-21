@@ -31,8 +31,7 @@ class EntryTable(tk.Frame):
     self.variable_table.append(entry_row)
 
   def insert_row(self, index: int, values: tuple[str,...]):
-    # TODO need to do this and update rowids 
-    pass
+    raise NotImplementedError
 
   def remove_row(self, index: int) -> list[str]:
     to_remove = self.variable_table[index]
@@ -42,18 +41,12 @@ class EntryTable(tk.Frame):
     return to_remove.values()
 
   def highlight_row(self, row: tuple[str,...]):
-    try:
-      index = self.variable_table.index(row)
-      self.variable_table[index].highlight()
-    except ValueError:
-      return
+    index = self.variable_table.index(row)
+    self.variable_table[index].highlight()
     
   def unhighlight_row(self, row: tuple[str,...]):
-    try:
-      index = self.variable_table.index(row)
-      self.variable_table[index].unhighlight()
-    except ValueError:
-      return
+    index = self.variable_table.index(row)
+    self.variable_table[index].unhighlight()
     
   def unhighlight_all_rows(self):
     for row in self.variable_table:
