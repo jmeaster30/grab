@@ -50,10 +50,8 @@ class Grab(tk.Tk):
   def __init__(self):
     super().__init__()
 
-    self.layout_config = LayoutConfig()
-
-    self.title(self.layout_config.title)
-    self.geometry(f'{self.layout_config.width}x{self.layout_config.height}')
+    self.title(LayoutConfig().window.title)
+    self.geometry(LayoutConfig().window.size())
     self.rowconfigure(0, weight=1)
     self.columnconfigure(0, weight=1)
 

@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional
+from lilytk import ScrollableFrame
 
-from ui.scrollable_widget_list import ScrollableWidgetList
+from ui.highlightable import Highlightable
 
 class EntryTable(tk.Frame):
   def __init__(self, root, columns: tuple[str,...], initial_data: list[tuple[str,...]] = [], on_row_change: Optional[Callable[[int, int, list[str]], None]] = None):
@@ -11,27 +12,21 @@ class EntryTable(tk.Frame):
     self.heading_entry = EntryRow(self, -1, values=columns, editable=False)
     self.heading_entry.pack(fill=tk.X)
 
-    self.table_frame = ScrollableWidgetList(self)
+    self.table_frame = ScrollableFrame(self, orient=tk.VERTICAL)
     self.table_frame.pack(expand=True, fill=tk.BOTH)
 
     self.variable_table: list[EntryRow] = []
     self.on_row_change: Optional[callable[[int, int, list[str]], None]] = on_row_change
 
     for row_idx in range(0, len(initial_data)):
-      #row = EntryRow(self, row_idx, initial_data[row_idx], self.on_row_change)
-      #row.pack(fill=tk.X)
-      row = EntryRow(self.table_frame, row_idx, initial_data[row_idx], self.on_row_change)
+      row = EntryRow(self.table_frame, row_idx, initial_data[row_idx], on_row_change_action=self.on_row_change)
       row.pack(fill=tk.X)
       self.variable_table.append(row)
 
   def append_row(self, values: tuple[str,...]):
-    idx = len(self.variable_table)
-    entry_row = EntryRow(self, idx, values, on_row_change_action=self.on_row_change)
+    entry_row = EntryRow(self, len(self.variable_table), values, on_row_change_action=self.on_row_change)
     entry_row.pack(fill=tk.X, side=tk.LEFT)
     self.variable_table.append(entry_row)
-
-  def insert_row(self, index: int, values: tuple[str,...]):
-    raise NotImplementedError
 
   def remove_row(self, index: int) -> list[str]:
     to_remove = self.variable_table[index]
@@ -42,8 +37,10 @@ class EntryTable(tk.Frame):
 
   def highlight_row(self, row: tuple[str,...]):
     index = self.variable_table.index(row)
-    self.variable_table[index].highlight()
-    
+    widget = self.variable_table[index]
+    widget.highlight()
+    self.table_frame.show(widget)
+
   def unhighlight_row(self, row: tuple[str,...]):
     index = self.variable_table.index(row)
     self.variable_table[index].unhighlight()
@@ -57,17 +54,23 @@ class EntryTable(tk.Frame):
     for entry_row in self.variable_table:
       entry_row.set_row_change_action(row_change_action)
 
-class EntryRow(tk.Frame):
-  def __init__(self, root, row_id: int, values: tuple[str,...], on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = None, editable: bool = True):
+class EntryRow(tk.Frame, Highlightable):
+  def __init__(self, root, row_id: int, values: tuple[str,...], editable: bool = True, on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = None, on_select_change_action: Optional[Callable[[int, bool], None]] = None):
     super().__init__(root)
 
     self.row_id = row_id
     self.editable = editable
-    self.highlighted = False
     self.internal_values: list[tuple[tk.StringVar, tk.Entry]] = []
+
     self.on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = on_row_change_action
+    self.on_select_change_action: Optional[Callable[[int, bool], None]] = on_select_change_action
+
+    self.selected = tk.BooleanVar(value=False)
+    self.check_box = tk.Checkbutton(self, variable=self.selected, offvalue=False, onvalue=True, command=self.__bind_select_change())
+    self.check_box.grid(row=0, column=0)
+
     for idx in range(0, len(values)):
-      self.columnconfigure(idx, weight=1)
+      self.columnconfigure(idx+1, weight=1)
       var = tk.StringVar(value=values[idx])
       entry = tk.Entry(self, textvariable=var)
       if self.editable:
@@ -75,7 +78,7 @@ class EntryRow(tk.Frame):
       else:
         entry.configure(state='readonly', relief='raised')
       entry.bind('<KeyRelease>', self.__bind_row_change(idx))
-      entry.grid(row=0, column=idx, sticky=tk.NSEW)
+      entry.grid(row=0, column=idx+1, sticky=tk.NSEW)
       self.internal_values.append((var, entry))
 
   def values(self) -> list[str]:
@@ -100,19 +103,14 @@ class EntryRow(tk.Frame):
       for entry in self.internal_values:
         entry[1].configure(state='readonly', relief='raised')
 
-  def highlight(self):
-    self.highlighted = True
-    self.configure(background="#ff0000", borderwidth=2)
-
-  def unhighlight(self):
-    self.highlighted = False
-    self.configure(background="#000000", borderwidth=0)
-
   def set_row_change_action(self, action: Callable[[int, int, list[str]], None]):
     self.on_row_change_action = action
 
   def __bind_row_change(self, col_idx: int) -> Callable[[tk.Event], None]:
     return lambda event: self.on_row_change_action(self.row_id, col_idx, self.values()) if self.on_row_change_action is not None else None
+
+  def __bind_select_change(self) -> Callable[[tk.Event], None]:
+    return lambda event: self.on_select_change_action(self.row_id, self.values()) if self.on_select_change_action is not None else None
 
   def __eq__(self, other):
     if isinstance(other, self.__class__):
