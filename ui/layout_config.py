@@ -65,21 +65,21 @@ class LayoutConfig:
     self.style.element_create("close", "image", "img_close",
       ("active", "pressed", "!disabled", "img_closepressed"),
       ("active", "!disabled", "img_closeactive"), border=8, sticky='')
-    self.style.layout("CustomNotebook", [("CustomNotebook.client", {"sticky": "nswe"})])
+    self.style.layout("CustomNotebook", [("CustomNotebook.client", {"sticky": tk.NSEW})])
     self.style.layout("CustomNotebook.Tab", [
       ("CustomNotebook.tab", {
-        "sticky": "nswe",
+        "sticky": tk.NSEW,
         "children": [
           ("CustomNotebook.padding", {
-            "side": "top",
-            "sticky": "nswe",
+            "side": tk.TOP,
+            "sticky": tk.NSEW,
             "children": [
               ("CustomNotebook.focus", {
-                "side": "top",
-                "sticky": "nswe",
+                "side": tk.TOP,
+                "sticky": tk.NSEW,
                   "children": [
-                    ("CustomNotebook.label", {"side": "left", "sticky": ''}),
-                    ("CustomNotebook.close", {"side": "left", "sticky": ''}),
+                    ("CustomNotebook.label", {"side": tk.LEFT, "sticky": ''}),
+                    ("CustomNotebook.close", {"side": tk.LEFT, "sticky": ''}),
                   ]
               })
             ]

@@ -1,23 +1,54 @@
 import tkinter as tk
-from tkinter import ttk
 from typing import Optional
 
 from model.environment import Environment, EnvironmentVariable
 from ui.entry_table import EntryTable
+from ui.left_right_buttons import LeftRightButtons
 
 class EnvironmentEditArea(tk.Frame):
-  def __init__(self, root, environment: Environment, highlight_variable: Optional[EnvironmentVariable] = None):
+  def __init__(self, root, environment: Environment):
     super().__init__(root)
     self.environment = environment
-    self.highlighted_variable = highlight_variable
+    self.highlighted_variable = None
+    self.selected_rows: list[int] = []
 
     self.rowconfigure(0, weight=1)
     self.columnconfigure(0, weight=1)
 
     self.variables_grid = EntryTable(self, columns=("Name", "Value"), initial_data=[(envvar.name, envvar.value) for envvar in self.environment.variables])
     self.variables_grid.grid(row=0, column=0, sticky=tk.NSEW)
-    if highlight_variable is not None:
-      self.set_highlight_variable(highlight_variable)
+
+    self.variables_grid.set_select_change_action(self.on_row_select)
+    self.variables_grid.set_row_change_action()
+
+    self.buttons = LeftRightButtons(self, "+ Add", "- Remove")
+    self.buttons.grid(row=1, column=0, sticky=tk.EW)
+    self.buttons.set_right_button_clickable(False)
+    self.buttons.left_button_action = self.add_env_variable
+    self.buttons.right_button_action = self.remove_env_variable
+
+  def on_row_select(self, rowid: int, values: list[str]):
+    if rowid in self.selected_rows:
+      self.selected_rows.pop(self.selected_rows.index(rowid))
+    else:
+      self.selected_rows.append(rowid)
+    self.buttons.set_right_button_clickable(len(self.selected_rows) != 0)
+
+  def on_row_add(self, idx: int, values: list[str]):
+    self.environment.add_or_update_environment_variable(idx, values)
+
+  def on_row_change(self, rowidx: int, colidx: int, values: list[str]):
+    self.environment.add_or_update_environment_variable(rowidx, values)
+    if colidx == 0:
+      self.environment.refresh()
+
+  def add_env_variable(self):
+    self.variables_grid.append_row(("New Env Var", ""))
+
+  def remove_env_variable(self):
+    self.variables_grid.remove_rows(self.selected_rows)
+    self.selected_rows = []
+    self.buttons.set_right_button_clickable(False)
 
   def set_highlight_variable(self, environment_variable: Optional[EnvironmentVariable]):
     if self.highlighted_variable is not None:

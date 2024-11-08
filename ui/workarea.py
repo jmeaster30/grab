@@ -21,17 +21,28 @@ class WorkArea(tk.Frame):
 
     self.environment_id_to_edit_area: dict[int, EnvironmentEditArea] = {}
 
+  def is_child(self, editArea: EnvironmentEditArea) -> bool:
+    return str(editArea) in self.notebook.tabs()
+
   def open_environment(self, environment: Environment, highlighted_variable: Optional[EnvironmentVariable] = None):
     tab_frame = None
-    if environment.tree_id in self.environment_id_to_edit_area:
+    if environment.tree_id in self.environment_id_to_edit_area and self.is_child(self.environment_id_to_edit_area[environment.tree_id]):
       tab_frame = self.environment_id_to_edit_area[environment.tree_id]
-      tab_frame.set_highlight_variable(highlighted_variable)
     else:
-      tab_frame = EnvironmentEditArea(self.notebook, environment, highlighted_variable)
-      envname, _, _ = environment.get_item_options()
+      tab_frame = EnvironmentEditArea(self.notebook, environment)
+      envname, _ = environment.get_item_options()
       self.notebook.add(tab_frame, state=tk.NORMAL, sticky=tk.NSEW, text=envname)
       self.environment_id_to_edit_area[environment.tree_id] = tab_frame
     self.notebook.select(tab_frame)
+    # FIXME this is hack and sucks real bad
+    self.after(100, self.set_initial_highlight(tab_frame, highlighted_variable))
+
+  def set_initial_highlight(self, tab_frame, highlighted_variable):
+    print("setting click highlight")
+    def do_highlight():
+      print(f"highlighed: {highlighted_variable}")
+      tab_frame.set_highlight_variable(highlighted_variable)
+    return do_highlight
 
   def review_environment_tabs(self, environments: list[Environment]):
     alive_tabs = [env.tree_id for env in environments]
@@ -54,7 +65,7 @@ class WorkArea(tk.Frame):
     if not self.notebook.instate(['pressed']):
       return
 
-    element =  self.notebook.identify(event.x, event.y)
+    element = self.notebook.identify(event.x, event.y)
     if "close" not in element:
       return
 

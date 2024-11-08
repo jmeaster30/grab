@@ -4,19 +4,24 @@ from model.request import Request
 from ui.tree_viewable_item import TreeViewableItem
 
 class Collection(TreeViewableItem):
-  def __init__(self, collection_name: str = "New Collection"):
-    super().__init__()
+  def __init__(self, parent: TreeViewableItem, collection_name: str = "New Collection"):
+    super().__init__(parent)
     self.name = collection_name
     self.requests = []
 
   def add_request(self, request: Request):
     self.requests.append(request)
   
-  def get_item_options(self) -> tuple[str, Optional[tk.Image], bool]:
-    return self.name, None, False
+  def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
+    return self.name, None
 
-  def refresh(self, hierarchy, parent_id: Optional[int]):
-    super().refresh(hierarchy, parent_id)
+  def set_hierarchy(self, hierarchy):
+    super().set_hierarchy(hierarchy)
     for request in self.requests:
-      request.refresh(hierarchy, self.tree_id)
+      request.set_hierarchy(hierarchy)
+
+  def refresh(self):
+    super().refresh()
+    for request in self.requests:
+      request.refresh()
 

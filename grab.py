@@ -40,8 +40,8 @@ env2 = project.add_new_environment("Radical")
 env2["aaaa"] = "1234"
 env2["oooo"] = "87563"
 collection = project.add_new_collection("Many REquests")
-collection.add_request(Request("Get Token"))
-collection.add_request(Request("Post Man"))
+collection.add_request(Request(collection, "Get Token"))
+collection.add_request(Request(collection, "Post Man"))
 
 test_project = Project("AAAAA")
 print(test_project.name)
@@ -68,8 +68,9 @@ class Grab(tk.Tk):
 
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
     self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
-    project.refresh_project(self.project_hierarchy)
-    
+    Project().set_hierarchy(self.project_hierarchy)
+    Project().refresh_project()
+
 if __name__ == "__main__":
   app = Grab()
   app.mainloop()

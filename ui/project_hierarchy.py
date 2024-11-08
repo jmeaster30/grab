@@ -17,9 +17,9 @@ class ProjectHierarchy(tk.Frame):
     self.project_name_var = tk.StringVar()
     self.project_name_entry = ttk.Entry(self, textvariable=self.project_name_var)
     self.tree = ttk.Treeview(self, show='tree', selectmode='browse')
-    self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.debug_view)
+    self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
 
-    self.tree.configure(yscrollcommand=self.debug_scroll_command)
+    self.tree.configure(yscrollcommand=self.scrollbar.set)
     self.tree.bind('<Double-Button-1>', self.on_double_click)
     self.tree.bind('<<TreeviewSelect>>', self.on_tree_selection)
 
@@ -37,20 +37,6 @@ class ProjectHierarchy(tk.Frame):
     self.on_environment_variable_click_action = None
     self.on_environment_add_remove_action = None
 
-  def debug_scroll_command(self, *args):
-    print("debug scroll command")
-    print(args)
-    result = self.scrollbar.set(*args)
-    print(result)
-    return result
-  
-  def debug_view(self, *args):
-    print("debug view")
-    print(args)
-    result = self.tree.yview(*args)
-    print(result)
-    return result
-
   def on_double_click(self, event: tk.Event):
     tree_id = self.tree.identify_row(event.y)
     item = self.tree_viewable_item_map[tree_id]
@@ -61,7 +47,8 @@ class ProjectHierarchy(tk.Frame):
         if self.on_environment_variable_click_action is not None:
           self.on_environment_variable_click_action(item, None)
       case EnvironmentVariable():
-        parent_id = self.tree.parent(tree_id)
+        parent_id = item.get_parent_id()
+        print(parent_id)
         parent_item = self.tree_viewable_item_map[parent_id]
         print(f"found environment variable: {parent_item.get_item_options()[0]} -> {item.get_item_options()[0]}")
         if self.on_environment_variable_click_action is not None:
@@ -104,16 +91,18 @@ class ProjectHierarchy(tk.Frame):
     item_ids = self.tree.get_children(parent_id)
     return [self.tree_viewable_item_map[id] for id in item_ids]
 
-  def add_item(self, parent_id: Optional[int], tree_item: TreeViewableItem) -> int:
+  def add_item(self, tree_item: TreeViewableItem, is_open: bool = True) -> int:
     print(f"adding item to hierarchy {tree_item}")
     self.max_id += 1
-    text, img, is_open = tree_item.get_item_options()
-    print(self.max_id, text, img, is_open)
+    text, img = tree_item.get_item_options()
+    print(self.max_id, text, img)
     self.tree.insert('', tk.END, text=text, iid=self.max_id, open=is_open)
-    if parent_id is not None:
-      child_num = len(self.tree.get_children(parent_id))
-      self.tree.move(self.max_id, parent_id, child_num)
+    print(tree_item.get_parent_id())
+    if tree_item.get_parent_id() is not None:
+      child_num = len(self.tree.get_children(tree_item.get_parent_id()))
+      self.tree.move(self.max_id, tree_item.get_parent_id(), child_num)
     self.tree_viewable_item_map[str(self.max_id)] = tree_item
+    tree_item.tree_id = self.max_id
     return self.max_id
 
   def add_button_controls(self, text: Optional[str], clickable: bool, action: Optional[callable]):
@@ -130,7 +119,7 @@ class ProjectHierarchy(tk.Frame):
     env_names = [env.name for env in Project().environments.values() if env.name.startswith("New Environment")]
     if len(env_names) == 0:
       Project().add_new_environment(None)
-      Project().refresh_environments(self)
+      Project().refresh_environments()
       if self.on_environment_add_remove_action is not None:
         self.on_environment_add_remove_action(Project().environments.values())
       return
@@ -138,13 +127,13 @@ class ProjectHierarchy(tk.Frame):
     suffix = env_names[0].removeprefix('New Environment').strip()
     if len(suffix) == 0:
       Project().add_new_environment("New Environment 1")
-      Project().refresh_environments(self)
+      Project().refresh_environments()
       if self.on_environment_add_remove_action is not None:
         self.on_environment_add_remove_action(Project().environments.values())
       return
 
     Project().add_new_environment(f'New Environment {int(float(suffix)) + 1}')
-    Project().refresh_environments(self)
+    Project().refresh_environments()
     if self.on_environment_add_remove_action is not None:
         self.on_environment_add_remove_action(Project().environments.values())
 
@@ -154,7 +143,7 @@ class ProjectHierarchy(tk.Frame):
     match item:
       case Environment():
         Project().remove_environment(item.name)
-        Project().refresh_environments(self)
+        Project().refresh_environments()
         if self.on_environment_add_remove_action is not None:
           self.on_environment_add_remove_action(Project().environments.values())
       case _:
@@ -171,6 +160,3 @@ class ProjectHierarchy(tk.Frame):
 
   def remove_request(self):
     print("remove request")
-
-  def backing_data_changed(self, item: TreeViewableItem, parent_id: int):
-    item.refresh(self)
