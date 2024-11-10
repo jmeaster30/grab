@@ -36,6 +36,7 @@ class ProjectHierarchy(tk.Frame):
     self.tree_viewable_item_map: dict[str, TreeViewableItem] = {}
     self.on_environment_variable_click_action = None
     self.on_environment_add_remove_action = None
+    self.on_environment_name_change = None
 
   def on_double_click(self, event: tk.Event):
     tree_id = self.tree.identify_row(event.y)

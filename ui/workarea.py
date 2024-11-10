@@ -38,18 +38,20 @@ class WorkArea(tk.Frame):
     self.after(100, self.set_initial_highlight(tab_frame, highlighted_variable))
 
   def set_initial_highlight(self, tab_frame, highlighted_variable):
-    print("setting click highlight")
     def do_highlight():
-      print(f"highlighed: {highlighted_variable}")
       tab_frame.set_highlight_variable(highlighted_variable)
     return do_highlight
 
   def review_environment_tabs(self, environments: list[Environment]):
     alive_tabs = [env.tree_id for env in environments]
-    for editarea_id in self.environment_id_to_edit_area.keys():
+    editarea_ids = [id for id in self.environment_id_to_edit_area.keys()]
+    for editarea_id in editarea_ids:
       if editarea_id not in alive_tabs:
         self.notebook.forget(self.environment_id_to_edit_area[editarea_id])
         del self.environment_id_to_edit_area[editarea_id]
+
+  def update_tab_name(self, tab_id: int, name: str):
+    self.notebook.tab(str(self.environment_id_to_edit_area[tab_id]), text=name)
 
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)

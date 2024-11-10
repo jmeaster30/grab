@@ -43,9 +43,6 @@ collection = project.add_new_collection("Many REquests")
 collection.add_request(Request(collection, "Get Token"))
 collection.add_request(Request(collection, "Post Man"))
 
-test_project = Project("AAAAA")
-print(test_project.name)
-
 class Grab(tk.Tk):
   def __init__(self):
     super().__init__()
@@ -68,6 +65,7 @@ class Grab(tk.Tk):
 
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
     self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
+    self.project_hierarchy.on_environment_name_change = self.workarea.update_tab_name
     Project().set_hierarchy(self.project_hierarchy)
     Project().refresh_project()
 

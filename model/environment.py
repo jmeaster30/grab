@@ -18,11 +18,28 @@ class Environment(TreeViewableItem):
     self.name = 'New Environment' if env_name is None else env_name
     self.variables: list[EnvironmentVariable] = []
 
+  def set_name(self, name: str):
+    self.name = name
+    if self.project_hierarchy.on_environment_name_change is not None:
+      self.project_hierarchy.on_environment_name_change(self.tree_id, self.name)
+
   def add_or_update_environment_variable(self, idx: Optional[int], values: list[str]):
-    print(f"add or update environment variable {idx} {values}")
+    if idx is None:
+      # adding a new environment variable
+      newvar = EnvironmentVariable(self, values[0], values[1])
+      newvar.set_hierarchy(self.project_hierarchy)
+      self.variables.append(newvar)
+      return
+    
+    if idx < 0 or idx >= len(self.variables):
+      raise IndexError
+    
+    envvar = self.variables[idx]
+    envvar.name = values[0]
+    envvar.value = values[1]
 
   def remove_environment_variable(self, idx: int):
-    print(f"remove environment variable {idx}")
+    self.variables.pop(idx)
 
   def __getitem__(self, key: str) -> str:
     for var in self.variables:
@@ -58,7 +75,11 @@ class Environment(TreeViewableItem):
       var.set_hierarchy(hierarchy)
 
   def refresh(self):
-    print(self)
     super().refresh(True)
     for variable in self.variables:
       variable.refresh()
+    # need to go through and remove the rows from the treeview that are not there any more
+    remaining_tree_ids = [str(var.tree_id) for var in self.variables]
+    for child_id in self.project_hierarchy.tree.get_children(self.tree_id):
+      if str(child_id) not in remaining_tree_ids:
+        self.project_hierarchy.tree.delete(child_id)
