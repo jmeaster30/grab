@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import Optional
+from typing import Collection, Optional
 
 from model.environment import Environment, EnvironmentVariable
 from model.request import Request
+from ui.collection_edit_area import CollectionEditArea
 from ui.environment_edit_area import EnvironmentEditArea
 
 # I got the CustomNotebook from https://stackoverflow.com/a/39459376
@@ -19,6 +20,7 @@ class WorkArea(tk.Frame):
     self.notebook.bind("<ButtonPress-1>", self.on_close_press, True)
     self.notebook.bind("<ButtonRelease-1>", self.on_close_release)
 
+    self.collection_id_to_edit_area: dict[int, CollectionEditArea] = {}
     self.environment_id_to_edit_area: dict[int, EnvironmentEditArea] = {}
 
   def is_child(self, editArea: EnvironmentEditArea) -> bool:
@@ -37,6 +39,17 @@ class WorkArea(tk.Frame):
     # FIXME this is hack and sucks real bad
     self.after(100, self.set_initial_highlight(tab_frame, highlighted_variable))
 
+  def open_collection(self, collection: Collection):
+    tab_frame = None
+    if collection.tree_id in self.collection_id_to_edit_area and self.is_child(self.collection_id_to_edit_area[collection.tree_id]):
+      tab_frame = self.collection_id_to_edit_area[collection.tree_id]
+    else:
+      tab_frame = CollectionEditArea(self.notebook, collection)
+      collection_name, _ = collection.get_item_options()
+      self.notebook.add(tab_frame, state=tk.NORMAL, sticky=tk.NSEW, text=collection_name)
+      self.collection_id_to_edit_area[collection.tree_id] = tab_frame
+    self.notebook.select(tab_frame)
+
   def set_initial_highlight(self, tab_frame, highlighted_variable):
     def do_highlight():
       tab_frame.set_highlight_variable(highlighted_variable)
@@ -50,8 +63,19 @@ class WorkArea(tk.Frame):
         self.notebook.forget(self.environment_id_to_edit_area[editarea_id])
         del self.environment_id_to_edit_area[editarea_id]
 
+  def review_collection_tabs(self, collections: list[Collection]):
+    alive_tabs = [env.tree_id for env in collections]
+    editarea_ids = [id for id in self.collection_id_to_edit_area.keys()]
+    for editarea_id in editarea_ids:
+      if editarea_id not in alive_tabs:
+        self.notebook.forget(self.collection_id_to_edit_area[editarea_id])
+        del self.collection_id_to_edit_area[editarea_id]
+
   def update_tab_name(self, tab_id: int, name: str):
-    self.notebook.tab(str(self.environment_id_to_edit_area[tab_id]), text=name)
+    if tab_id in self.environment_id_to_edit_area:
+      self.notebook.tab(str(self.environment_id_to_edit_area[tab_id]), text=name)
+    if tab_id in self.collection_id_to_edit_area:
+      self.notebook.tab(str(self.collection_id_to_edit_area[tab_id]), text=name)
 
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)

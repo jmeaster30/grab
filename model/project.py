@@ -9,8 +9,8 @@ from util.singleton import Singleton
 class Project:  
   def __init__(self, name="Empty Project"):
     self.name = name
-    self.environments: dict[str, Environment] = {}
-    self.collections: dict[str, Collection] = {}
+    self.environments: list[Environment] = []
+    self.collections: list[Collection] = []
 
     self.environments_section = EnvironmentsSection(None)
     self.collections_section = CollectionsSection(None)
@@ -24,43 +24,54 @@ class Project:
 
   def refresh_environments(self):
     self.environments_section.refresh()
-    for _, environment in self.environments.items():
+    for environment in self.environments:
       environment.refresh()
 
-    for item in self.project_hierarchy.get_children(self.environments_section.tree_id):
-      if item.tree_id not in [env.tree_id for env in self.environments.values()]:
-        print(f"deleting {item.tree_id}")
-        self.project_hierarchy.tree.delete(item.tree_id)
+    self.remove_dead_environment_branches()
 
   def refresh_collections(self):
     self.collections_section.refresh()
-    for _, collection in self.collections.items():
+    for collection in self.collections:
       collection.refresh()
+
+    self.remove_dead_collection_branches()
+
+  def remove_dead_environment_branches(self):
+    for item in self.project_hierarchy.get_children(self.environments_section.tree_id):
+      if item.tree_id not in [env.tree_id for env in self.environments]:
+        self.project_hierarchy.tree.delete(item.tree_id)
+
+  def remove_dead_collection_branches(self):
+    for item in self.project_hierarchy.get_children(self.collections_section.tree_id):
+      if item.tree_id not in [coll.tree_id for coll in self.collections]:
+        self.project_hierarchy.tree.delete(item.tree_id)
 
   def add_new_environment(self, env_name: Optional[str]):
     env = Environment(self.environments_section, env_name)
-    self.environments[env.name] = env
-    return self.environments[env.name]
+    env.set_hierarchy(self.project_hierarchy)
+    self.environments.append(env)
+    return env
 
-  def remove_environment(self, env_name: str):
-    del self.environments[env_name]
+  def remove_environment(self, environment: Environment):
+    self.environments.remove(environment)
 
   def add_new_collection(self, collection_name: Optional[str]):
     collection = Collection(self.collections_section, collection_name)
-    self.collections[collection.name] = collection
-    return self.collections[collection.name]
+    collection.set_hierarchy(self.project_hierarchy)
+    self.collections.append(collection)
+    return collection
   
-  def remove_collection(self, env_name: str):
-    del self.collections[env_name]
+  def remove_collection(self, collection: Collection):
+    self.collections.remove(collection)
 
   def set_hierarchy(self, hierarchy):
     self.project_hierarchy = hierarchy
     self.environments_section.set_hierarchy(hierarchy)
     self.collections_section.set_hierarchy(hierarchy)
-    for name, env in self.environments.items():
+    for env in self.environments:
       env.set_hierarchy(hierarchy)
 
-    for name, collection in self.collections.items():
+    for collection in self.collections:
       collection.set_hierarchy(hierarchy)
 
 class CollectionsSection(TreeViewableItem):

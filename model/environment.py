@@ -75,7 +75,7 @@ class Environment(TreeViewableItem):
       var.set_hierarchy(hierarchy)
 
   def refresh(self):
-    super().refresh(True)
+    super().refresh()
     for variable in self.variables:
       variable.refresh()
     # need to go through and remove the rows from the treeview that are not there any more

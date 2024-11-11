@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from model.project import Project
-from model.request import Request
+from model.request import Request, RequestMethod
 from ui.layout_config import LayoutConfig
 from ui.project_hierarchy import ProjectHierarchy
 from ui.workarea import WorkArea
@@ -40,8 +40,8 @@ env2 = project.add_new_environment("Radical")
 env2["aaaa"] = "1234"
 env2["oooo"] = "87563"
 collection = project.add_new_collection("Many REquests")
-collection.add_request(Request(collection, "Get Token"))
-collection.add_request(Request(collection, "Post Man"))
+collection.add_request(Request(collection, RequestMethod.GET, "Get Token"))
+collection.add_request(Request(collection, RequestMethod.POST, "Post Man"))
 
 class Grab(tk.Tk):
   def __init__(self):
@@ -64,8 +64,10 @@ class Grab(tk.Tk):
     self.paned_window.add(self.workarea)
 
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
+    self.project_hierarchy.on_collection_click_action = self.workarea.open_collection
     self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
     self.project_hierarchy.on_environment_name_change = self.workarea.update_tab_name
+    self.project_hierarchy.on_collection_name_change = self.workarea.update_tab_name
     Project().set_hierarchy(self.project_hierarchy)
     Project().refresh_project()
 

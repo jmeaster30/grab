@@ -7,6 +7,11 @@ class TreeViewableItem:
     self.parent = parent
     self.project_hierarchy = None
 
+  def __eq__(self, other):
+    if not isinstance(other, TreeViewableItem):
+      return False
+    return self.tree_id == other.tree_id
+
   def get_item_options(self) -> tuple[str, tk.Image]:
     pass
 
@@ -19,10 +24,12 @@ class TreeViewableItem:
   def set_hierarchy(self, hierarchy):
     self.project_hierarchy = hierarchy
 
-  # Purposefully doesn't have type annotation for 'tree'
   def refresh(self, is_open: bool = False):
+    is_already_open = is_open
     if self.tree_id is None:
-      self.tree_id = self.project_hierarchy.add_item(self)
+      self.tree_id = str(self.project_hierarchy.add_item(self))
+    else:
+      is_already_open = self.project_hierarchy.tree.item(self.tree_id, option='open')
 
     text, img = self.get_item_options()
-    self.project_hierarchy.tree.item(self.tree_id, option=None, text=text, open=is_open)
+    self.project_hierarchy.tree.item(self.tree_id, option=None, text=text, open=is_already_open)
