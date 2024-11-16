@@ -6,6 +6,7 @@ from model.environment import Environment, EnvironmentVariable
 from model.request import Request
 from ui.collection_edit_area import CollectionEditArea
 from ui.environment_edit_area import EnvironmentEditArea
+from ui.request_edit_area import RequestEditArea
 
 # I got the CustomNotebook from https://stackoverflow.com/a/39459376
 
@@ -22,6 +23,7 @@ class WorkArea(tk.Frame):
 
     self.collection_id_to_edit_area: dict[int, CollectionEditArea] = {}
     self.environment_id_to_edit_area: dict[int, EnvironmentEditArea] = {}
+    self.request_id_to_edit_area: dict[int, RequestEditArea] = {}
 
   def is_child(self, editArea: EnvironmentEditArea) -> bool:
     return str(editArea) in self.notebook.tabs()
@@ -44,10 +46,21 @@ class WorkArea(tk.Frame):
     if collection.tree_id in self.collection_id_to_edit_area and self.is_child(self.collection_id_to_edit_area[collection.tree_id]):
       tab_frame = self.collection_id_to_edit_area[collection.tree_id]
     else:
-      tab_frame = CollectionEditArea(self.notebook, collection)
+      tab_frame = CollectionEditArea(self.notebook, collection, self.open_request)
       collection_name, _ = collection.get_item_options()
       self.notebook.add(tab_frame, state=tk.NORMAL, sticky=tk.NSEW, text=collection_name)
       self.collection_id_to_edit_area[collection.tree_id] = tab_frame
+    self.notebook.select(tab_frame)
+
+  def open_request(self, request: Request):
+    tab_frame = None
+    if request.tree_id in self.request_id_to_edit_area and self.is_child(self.request_id_to_edit_area[request.tree_id]):
+      tab_frame = self.request_id_to_edit_area[request.tree_id]
+    else:
+      tab_frame = RequestEditArea(self.notebook, request)
+      request_name, _ = request.get_item_options()
+      self.notebook.add(tab_frame, state=tk.NORMAL, sticky=tk.NSEW, text=request_name)
+      self.request_id_to_edit_area[request.tree_id] = tab_frame
     self.notebook.select(tab_frame)
 
   def set_initial_highlight(self, tab_frame, highlighted_variable):
@@ -71,11 +84,22 @@ class WorkArea(tk.Frame):
         self.notebook.forget(self.collection_id_to_edit_area[editarea_id])
         del self.collection_id_to_edit_area[editarea_id]
 
+  def review_request_tabs(self, requests: list[Request]):
+    alive_tabs = [env.tree_id for env in requests]
+    editarea_ids = [id for id in self.request_id_to_edit_area.keys()]
+    for editarea_id in editarea_ids:
+      if editarea_id not in alive_tabs:
+        self.notebook.forget(self.request_id_to_edit_area[editarea_id])
+        del self.request_id_to_edit_area[editarea_id]
+
   def update_tab_name(self, tab_id: int, name: str):
     if tab_id in self.environment_id_to_edit_area:
       self.notebook.tab(str(self.environment_id_to_edit_area[tab_id]), text=name)
     if tab_id in self.collection_id_to_edit_area:
       self.notebook.tab(str(self.collection_id_to_edit_area[tab_id]), text=name)
+    if tab_id in self.request_id_to_edit_area:
+      self.notebook.tab(str(self.request_id_to_edit_area[tab_id]), text=name)
+
 
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)

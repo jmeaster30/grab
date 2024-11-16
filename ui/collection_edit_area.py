@@ -1,10 +1,9 @@
 import tkinter as tk
 from typing import Callable, Collection, Optional
 
-from model.request import Request, RequestMethod
+from model.request import Request
 from lilytk import ScrollableFrame
 
-from ui.dropdown_select import DropDownSelect
 from ui.left_right_buttons import LeftRightButtons
 
 class CollectionRequestRow(tk.Frame):
@@ -23,12 +22,6 @@ class CollectionRequestRow(tk.Frame):
     self.check_box = tk.Checkbutton(self, variable=self.selected, offvalue=False, onvalue=True, command=self.__bind_select_change())
     self.check_box.grid(row=0, column=0)
 
-    self.request_method = DropDownSelect(self, values=RequestMethod.get_all(), 
-                                        label_selector=(lambda method: method.name),
-                                        on_selection_change=self.on_method_change,
-                                        default_selected=request.method, width=10)
-    self.request_method.grid(row=0, column=1, sticky=tk.EW)
-
     self.name_var = tk.StringVar(value=self.request.name)
     self.name = tk.Entry(self, textvariable=self.name_var)
     self.name.grid(row=0, column=2, sticky=tk.EW)
@@ -40,15 +33,9 @@ class CollectionRequestRow(tk.Frame):
   def set_on_row_open(self, on_row_open: Optional[Callable[[Request], None]]):
     self.on_row_open_action = on_row_open
 
-  def on_method_change(self, new_method: RequestMethod):
-    self.request.method = new_method
-
   def on_name_change(self, event: tk.Event):
     self.request.name = self.name_var.get()
     self.request.refresh()
-
-  def on_url_change(self, event: tk.Event):
-    self.request.url = self.url_var.get()
 
   def on_row_open(self):
     if self.on_row_open_action is not None:
@@ -69,7 +56,7 @@ class CollectionEditGrid(ScrollableFrame):
     self.request_rows: dict[str, CollectionRequestRow] = {}
 
     for request in requests:
-      self.request_rows[request.tree_id] = CollectionRequestRow(self, request, on_row_selected=self.row_selected)
+      self.request_rows[request.tree_id] = CollectionRequestRow(self, request, on_row_selected=self.row_selected, on_row_open=self.on_row_open)
       self.request_rows[request.tree_id].pack(fill=tk.X)
 
   def add_row(self, request: Request):
@@ -113,7 +100,7 @@ class CollectionEditGrid(ScrollableFrame):
     self.on_rows_removed = on_rows_removed
 
 class CollectionEditArea(tk.Frame):
-  def __init__(self, root, collection: Collection):
+  def __init__(self, root, collection: Collection, on_row_open: Callable[[Request], None]):
     super().__init__(root)
     self.collection: Collection = collection;
 
@@ -128,6 +115,7 @@ class CollectionEditArea(tk.Frame):
     self.requests_grid = CollectionEditGrid(self, self.collection.requests)
     self.requests_grid.grid(row=1, column=0, sticky=tk.NSEW)
     self.requests_grid.set_on_row_selected(self.on_row_selected)
+    self.requests_grid.set_on_row_open(on_row_open)
 
     self.add_remove_buttons = LeftRightButtons(self, "+ Add Request", "- Remove Request(s)")
     self.add_remove_buttons.grid(row=2, column=0, sticky=tk.EW)

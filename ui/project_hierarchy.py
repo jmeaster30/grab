@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import Optional
+from typing import Callable, Optional
 from model.collection import Collection
 from model.environment import Environment, EnvironmentVariable
 from model.project import CollectionsSection, EnvironmentsSection, Project
@@ -11,11 +11,13 @@ from util.getnewname import get_new_name
 
 class ProjectHierarchy(tk.Frame):
   def __init__(self, root):
-    super().__init__(root, highlightbackground="red", highlightthickness=2)
+    super().__init__(root)
     self.max_id = 0
 
     self.project_name_var = tk.StringVar()
     self.project_name_entry = ttk.Entry(self, textvariable=self.project_name_var)
+    self.project_name_entry.bind('<KeyRelease>', self.project_name_changed)
+
     self.tree = ttk.Treeview(self, show='tree', selectmode='browse')
     self.scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.tree.yview)
 
@@ -40,6 +42,8 @@ class ProjectHierarchy(tk.Frame):
     self.on_collection_click_action = None
     self.on_collection_add_remove_action = None
     self.on_collection_name_change = None
+    self.on_request_click_action = None
+    self.on_project_name_change_action = None
 
   def on_double_click(self, event: tk.Event):
     tree_id = self.tree.identify_row(event.y)
@@ -61,6 +65,10 @@ class ProjectHierarchy(tk.Frame):
         print(f"found collection {item.name}")
         if self.on_collection_click_action is not None:
           self.on_collection_click_action(item)
+      case Request():
+        print(f"found request {item.name}")
+        if self.on_request_click_action is not None:
+          self.on_request_click_action(item)
       case _:
         print(f"unhandled item :( {item}")
 
@@ -89,8 +97,8 @@ class ProjectHierarchy(tk.Frame):
         self.add_button_controls("Collection", True, self.add_collection)
         self.remove_button_controls("Collection", True, self.remove_collection)
       case Request():
-        self.add_button_controls("Request", True, self.add_request)
-        self.remove_button_controls("Request", True, self.remove_request)
+        self.add_button_controls("Collection", True, self.add_collection)
+        self.remove_button_controls(None, False, None)
       case _:
         self.add_button_controls(None, False, None)
         self.remove_button_controls(None, False, None)
@@ -113,12 +121,12 @@ class ProjectHierarchy(tk.Frame):
     tree_item.tree_id = str(self.max_id)
     return self.max_id
 
-  def add_button_controls(self, text: Optional[str], clickable: bool, action: Optional[callable]):
+  def add_button_controls(self, text: Optional[str], clickable: bool, action: Optional[Callable]):
     self.button_controls.update_left_button_text(f'+ {"Add" if text is None else text}')
     self.button_controls.set_left_button_clickable(clickable)
     self.button_controls.left_button_action = action
 
-  def remove_button_controls(self, text: Optional[str], clickable: bool, action: Optional[callable]):
+  def remove_button_controls(self, text: Optional[str], clickable: bool, action: Optional[Callable]):
     self.button_controls.update_right_button_text(f'- {"Remove" if text is None else text}')
     self.button_controls.set_right_button_clickable(clickable)
     self.button_controls.right_button_action = action
@@ -161,8 +169,7 @@ class ProjectHierarchy(tk.Frame):
       case _:
         print(f"Unexpected item in remove_collection call {item}")
 
-  def add_request(self):
-    print("add request")
-
-  def remove_request(self):
-    print("remove request")
+  def project_name_changed(self, event):
+    Project().name = self.project_name_var.get()
+    if self.on_project_name_change_action is not None:
+      self.on_project_name_change_action(Project().name)

@@ -15,6 +15,7 @@ class EnvironmentVariable(TreeViewableItem):
 class Environment(TreeViewableItem):
   def __init__(self, parent: TreeViewableItem, env_name: Optional[str] = None):
     super().__init__(parent)
+    self.active = False
     self.name = 'New Environment' if env_name is None else env_name
     self.variables: list[EnvironmentVariable] = []
 

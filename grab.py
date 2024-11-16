@@ -3,6 +3,7 @@ from tkinter import ttk
 
 from model.project import Project
 from model.request import Request, RequestMethod
+from ui.control_bar import ControlBar
 from ui.layout_config import LayoutConfig
 from ui.project_hierarchy import ProjectHierarchy
 from ui.workarea import WorkArea
@@ -47,13 +48,16 @@ class Grab(tk.Tk):
   def __init__(self):
     super().__init__()
 
-    self.title(LayoutConfig().window.title)
+    self.update_title(Project().name)
     self.geometry(LayoutConfig().window.size())
-    self.rowconfigure(0, weight=1)
+    self.rowconfigure(1, weight=1)
     self.columnconfigure(0, weight=1)
 
+    self.control_bar = ControlBar(self, Project().environments)
+    self.control_bar.grid(row=0, column=0, sticky=tk.NSEW)
+
     self.paned_window = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
-    self.paned_window.grid(row=0, column=0, sticky=tk.NSEW)
+    self.paned_window.grid(row=1, column=0, sticky=tk.NSEW)
 
     self.project_hierarchy = ProjectHierarchy(self.paned_window)
     self.project_hierarchy.pack(expand=True, fill=tk.BOTH)
@@ -65,11 +69,16 @@ class Grab(tk.Tk):
 
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
     self.project_hierarchy.on_collection_click_action = self.workarea.open_collection
+    self.project_hierarchy.on_request_click_action = self.workarea.open_request
     self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
     self.project_hierarchy.on_environment_name_change = self.workarea.update_tab_name
     self.project_hierarchy.on_collection_name_change = self.workarea.update_tab_name
+    self.project_hierarchy.on_project_name_change_action = self.update_title
     Project().set_hierarchy(self.project_hierarchy)
     Project().refresh_project()
+
+  def update_title(self, project_name: str):
+    self.title(f"{LayoutConfig().window.title} - {project_name}")
 
 if __name__ == "__main__":
   app = Grab()

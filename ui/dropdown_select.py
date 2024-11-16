@@ -7,12 +7,17 @@ class DropDownSelect(ttk.Combobox):
               label_selector: Optional[Callable[[Any], str]] = None,
               on_selection_change: Optional[Callable[[Optional[Any]], None]] = None,
               **kwargs):
+    self.placeholder = placeholder
     self.internal_label_value_map: dict[str, Any] = {}
     self.internal_label_list: list[str] = []
     self.label_selector: Optional[Callable[[Any], str]] = label_selector
     self.selected_value_var: tk.StringVar = tk.StringVar()
     self.on_selection_change = on_selection_change
     super().__init__(*args, textvariable=self.selected_value_var, **kwargs)
+
+    if self.placeholder is not None:
+      self.internal_label_list.append(placeholder)
+      self.internal_label_value_map[placeholder] = None
 
     for item in values:
       text_value = self.__get_label_from_value(item)
@@ -24,6 +29,8 @@ class DropDownSelect(ttk.Combobox):
 
     if default_selected is not None:
       self.select(default_selected)
+    else:
+      self.select(None)
 
     self.bind('<<ComboboxSelected>>', self.__internal_selection_change)
 
@@ -41,13 +48,19 @@ class DropDownSelect(ttk.Combobox):
     self.event_generate('<<ComboboxSelected>>', data=label)
 
   def deselect(self):
-    self.current(-1)
+    if self.placeholder is None:
+      self.current(-1)
+      self.event_generate('<<ComboboxSelected>>', data=None)
+    else:
+      self.select(None)
 
   def __internal_selection_change(self, _: tk.Event):
     if self.on_selection_change is not None:
       self.on_selection_change(self.selected())
 
   def __get_label_from_value(self, value) -> str:
+    if value is None:
+      return self.placeholder
     if self.label_selector is None:
       return str(value)
     else:
