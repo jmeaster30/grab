@@ -70,8 +70,7 @@ class Grab(tk.Tk):
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
     self.project_hierarchy.on_collection_click_action = self.workarea.open_collection
     self.project_hierarchy.on_request_click_action = self.workarea.open_request
-    self.project_hierarchy.on_environment_add_remove_action = self.workarea.review_environment_tabs
-    self.project_hierarchy.on_environment_name_change = self.workarea.update_tab_name
+    self.project_hierarchy.on_environment_change_actions = [self.workarea.review_environment_tabs, self.workarea.update_environment_tabs, self.control_bar.on_environments_change]
     self.project_hierarchy.on_collection_name_change = self.workarea.update_tab_name
     self.project_hierarchy.on_project_name_change_action = self.update_title
     Project().set_hierarchy(self.project_hierarchy)

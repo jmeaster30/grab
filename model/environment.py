@@ -21,8 +21,7 @@ class Environment(TreeViewableItem):
 
   def set_name(self, name: str):
     self.name = name
-    if self.project_hierarchy.on_environment_name_change is not None:
-      self.project_hierarchy.on_environment_name_change(self.tree_id, self.name)
+    self.project_hierarchy.notify_environment_change()
 
   def add_or_update_environment_variable(self, idx: Optional[int], values: list[str]):
     if idx is None:
@@ -66,6 +65,11 @@ class Environment(TreeViewableItem):
     if envvar is None:
       raise KeyError
     self.variables.remove(envvar)
+
+  def __eq__(self, other):
+    if not isinstance(other, self.__class__):
+      return False
+    return self.tree_id == other.tree_id
 
   def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
     return self.name, None

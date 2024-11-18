@@ -37,8 +37,7 @@ class ProjectHierarchy(tk.Frame):
 
     self.tree_viewable_item_map: dict[str, TreeViewableItem] = {}
     self.on_environment_variable_click_action = None
-    self.on_environment_add_remove_action = None
-    self.on_environment_name_change = None
+    self.on_environment_change_actions: list[Callable[[list[Environment]], None]] = []
     self.on_collection_click_action = None
     self.on_collection_add_remove_action = None
     self.on_collection_name_change = None
@@ -135,8 +134,7 @@ class ProjectHierarchy(tk.Frame):
     new_env_name = get_new_name('Environment', [env.name for env in Project().environments])
     Project().add_new_environment(new_env_name)
     Project().refresh_environments()
-    if self.on_environment_add_remove_action is not None:
-        self.on_environment_add_remove_action(Project().environments)
+    self.notify_environment_change()
 
   def remove_environment(self):
     item_id = self.tree.selection()[0]
@@ -145,10 +143,13 @@ class ProjectHierarchy(tk.Frame):
       case Environment():
         Project().remove_environment(item)
         Project().refresh_environments()
-        if self.on_environment_add_remove_action is not None:
-          self.on_environment_add_remove_action(Project().environments)
+        self.notify_environment_change()
       case _:
         print(f"Unexpected item in remove_environment call {item}")
+
+  def notify_environment_change(self):
+    for action in self.on_environment_change_actions:
+      action(Project().environments)
 
   def add_collection(self):
     new_collection_name = get_new_name('Collection', [coll.name for coll in Project().collections])

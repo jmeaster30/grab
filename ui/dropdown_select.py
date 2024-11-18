@@ -15,17 +15,7 @@ class DropDownSelect(ttk.Combobox):
     self.on_selection_change = on_selection_change
     super().__init__(*args, textvariable=self.selected_value_var, **kwargs)
 
-    if self.placeholder is not None:
-      self.internal_label_list.append(placeholder)
-      self.internal_label_value_map[placeholder] = None
-
-    for item in values:
-      text_value = self.__get_label_from_value(item)
-      
-      self.internal_label_value_map[text_value] = item
-      self.internal_label_list.append(text_value)
-      
-    super().config(values=self.internal_label_list)
+    self.set_options(values)
 
     if default_selected is not None:
       self.select(default_selected)
@@ -33,6 +23,30 @@ class DropDownSelect(ttk.Combobox):
       self.select(None)
 
     self.bind('<<ComboboxSelected>>', self.__internal_selection_change)
+
+  def set_options(self, options: list[Any]):
+    last_selected = None
+    if self.selected_value_var.get() != '':
+      last_selected = self.internal_label_value_map[self.selected_value_var.get()]
+    self.internal_label_list = []
+    self.internal_label_value_map = {}
+    if self.placeholder is not None:
+      self.internal_label_list.append(self.placeholder)
+      self.internal_label_value_map[self.placeholder] = None
+
+    for item in options:
+      text_value = self.__get_label_from_value(item)
+      
+      self.internal_label_value_map[text_value] = item
+      self.internal_label_list.append(text_value)
+      
+    super().config(values=self.internal_label_list)
+    if last_selected is not None:
+      for option in self.internal_label_value_map.values():
+        if last_selected == option:
+          self.select(option)
+    elif self.placeholder is not None:
+      self.select(None)
 
   def selected(self) -> Optional[Any]:
     if self.current() == -1:

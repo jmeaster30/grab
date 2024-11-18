@@ -1,6 +1,7 @@
 import tkinter as tk
-from typing import Callable, Collection, Optional
+from typing import Callable, Optional
 
+from model.collection import Collection
 from model.request import Request
 from lilytk import ScrollableFrame
 

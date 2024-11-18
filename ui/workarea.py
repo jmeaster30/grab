@@ -100,6 +100,10 @@ class WorkArea(tk.Frame):
     if tab_id in self.request_id_to_edit_area:
       self.notebook.tab(str(self.request_id_to_edit_area[tab_id]), text=name)
 
+  def update_environment_tabs(self, environments: list[Environment]):
+    for environment in environments:
+      if environment.tree_id in self.environment_id_to_edit_area:
+        self.notebook.tab(str(self.environment_id_to_edit_area[environment.tree_id]), text=environment.name)
 
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)
