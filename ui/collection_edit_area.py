@@ -3,7 +3,7 @@ from typing import Callable, Optional
 
 from model.collection import Collection
 from model.request import Request
-from lilytk import ScrollableFrame
+from lilytk.widgets import ScrollableFrame
 
 from ui.left_right_buttons import LeftRightButtons
 

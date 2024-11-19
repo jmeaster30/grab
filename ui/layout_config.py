@@ -1,7 +1,7 @@
 from enum import Enum
 import tkinter as tk
 from tkinter import font, ttk
-from util.singleton import Singleton
+from lilytk.utils import Singleton
 
 class Colors(Enum):
   BLACK = '#000000'

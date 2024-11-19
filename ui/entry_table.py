@@ -1,6 +1,7 @@
 import tkinter as tk
 from typing import Callable, Optional
-from lilytk import ScrollableFrame, Highlightable
+from lilytk.widgets import ScrollableFrame
+from lilytk.capabilities import Highlightable
 
 from ui.layout_config import LayoutConfig
 

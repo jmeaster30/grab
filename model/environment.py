@@ -1,6 +1,8 @@
 import tkinter as tk
 from typing import Optional
 
+from lilytk.events import Notifies
+
 from ui.tree_viewable_item import TreeViewableItem
 
 class EnvironmentVariable(TreeViewableItem):
@@ -19,9 +21,9 @@ class Environment(TreeViewableItem):
     self.name = 'New Environment' if env_name is None else env_name
     self.variables: list[EnvironmentVariable] = []
 
+  @Notifies('Environment.NameUpdated')
   def set_name(self, name: str):
     self.name = name
-    self.project_hierarchy.notify_environment_change()
 
   def add_or_update_environment_variable(self, idx: Optional[int], values: list[str]):
     if idx is None:

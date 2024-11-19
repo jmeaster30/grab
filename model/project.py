@@ -3,7 +3,7 @@ from typing import Optional
 from model.collection import Collection
 from model.environment import Environment
 from ui.tree_viewable_item import TreeViewableItem
-from util.singleton import Singleton
+from lilytk.utils import Singleton
 
 @Singleton
 class Project:  

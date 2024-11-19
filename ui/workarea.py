@@ -2,7 +2,10 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Collection, Optional
 
+from lilytk.events import ClassListens
+
 from model.environment import Environment, EnvironmentVariable
+from model.project import Project
 from model.request import Request
 from ui.collection_edit_area import CollectionEditArea
 from ui.environment_edit_area import EnvironmentEditArea
@@ -10,6 +13,7 @@ from ui.request_edit_area import RequestEditArea
 
 # I got the CustomNotebook from https://stackoverflow.com/a/39459376
 
+@ClassListens('Environment.Name', 'update_environment_tabs')
 class WorkArea(tk.Frame):
   def __init__(self, root):
     super().__init__(root)
@@ -100,8 +104,8 @@ class WorkArea(tk.Frame):
     if tab_id in self.request_id_to_edit_area:
       self.notebook.tab(str(self.request_id_to_edit_area[tab_id]), text=name)
 
-  def update_environment_tabs(self, environments: list[Environment]):
-    for environment in environments:
+  def update_environment_tabs(self, data):
+    for environment in Project().environments:
       if environment.tree_id in self.environment_id_to_edit_area:
         self.notebook.tab(str(self.environment_id_to_edit_area[environment.tree_id]), text=environment.name)
 
