@@ -18,13 +18,14 @@ class TreeViewableItem:
   def get_parent_id(self) -> Optional[str]:
     if self.parent is None:
       return None
-    print(self.parent)
     return str(self.parent.tree_id)
 
   def set_hierarchy(self, hierarchy):
     self.project_hierarchy = hierarchy
 
   def refresh(self, is_open: bool = False):
+    if self.project_hierarchy is None:
+      return
     is_already_open = is_open
     if self.tree_id is None:
       self.tree_id = str(self.project_hierarchy.add_item(self))

@@ -24,6 +24,7 @@ class Environment(TreeViewableItem):
   @Notifies('Environment.NameUpdated')
   def set_name(self, name: str):
     self.name = name
+    self.refresh()
 
   def add_or_update_environment_variable(self, idx: Optional[int], values: list[str]):
     if idx is None:
@@ -73,6 +74,7 @@ class Environment(TreeViewableItem):
       return False
     return self.tree_id == other.tree_id
 
+# TODO get rid of this from the data model and make various TreeViewableItem implementations that respond to changes on their corresponding object instances
   def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
     return self.name, None
   
@@ -82,6 +84,8 @@ class Environment(TreeViewableItem):
       var.set_hierarchy(hierarchy)
 
   def refresh(self):
+    if self.project_hierarchy is None:
+      return
     super().refresh()
     for variable in self.variables:
       variable.refresh()

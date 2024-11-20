@@ -1,5 +1,8 @@
 import tkinter as tk
 from typing import Optional
+
+from lilytk.events import Notifies
+
 from model.request import Request
 from ui.tree_viewable_item import TreeViewableItem
 
@@ -12,10 +15,10 @@ class Collection(TreeViewableItem):
   def add_request(self, request: Request):
     self.requests.append(request)
 
+  @Notifies('Collection.NameUpdated')
   def set_name(self, name: str):
     self.name = name
-    if self.project_hierarchy.on_collection_name_change is not None:
-      self.project_hierarchy.on_collection_name_change(self.tree_id, self.name)
+    self.refresh()
   
   def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
     return self.name, None
@@ -26,6 +29,8 @@ class Collection(TreeViewableItem):
       request.set_hierarchy(hierarchy)
 
   def refresh(self):
+    if self.project_hierarchy is None:
+      return
     super().refresh()
     for request in self.requests:
       request.refresh()

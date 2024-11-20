@@ -13,7 +13,11 @@ from ui.request_edit_area import RequestEditArea
 
 # I got the CustomNotebook from https://stackoverflow.com/a/39459376
 
-@ClassListens('Environment.Name', 'update_environment_tabs')
+@ClassListens('Collection.NameUpdated', 'update_collection_tabs')
+@ClassListens('Environment.NameUpdated', 'update_environment_tabs')
+@ClassListens('Request.NameUpdated', 'update_request_tabs')
+@ClassListens('Environment.Add', 'review_environment_tabs')
+@ClassListens('Environment.Remove', 'review_environment_tabs')
 class WorkArea(tk.Frame):
   def __init__(self, root):
     super().__init__(root)
@@ -72,8 +76,8 @@ class WorkArea(tk.Frame):
       tab_frame.set_highlight_variable(highlighted_variable)
     return do_highlight
 
-  def review_environment_tabs(self, environments: list[Environment]):
-    alive_tabs = [env.tree_id for env in environments]
+  def review_environment_tabs(self, data):
+    alive_tabs = [env.tree_id for env in Project().environments]
     editarea_ids = [id for id in self.environment_id_to_edit_area.keys()]
     for editarea_id in editarea_ids:
       if editarea_id not in alive_tabs:
@@ -97,10 +101,6 @@ class WorkArea(tk.Frame):
         del self.request_id_to_edit_area[editarea_id]
 
   def update_tab_name(self, tab_id: int, name: str):
-    if tab_id in self.environment_id_to_edit_area:
-      self.notebook.tab(str(self.environment_id_to_edit_area[tab_id]), text=name)
-    if tab_id in self.collection_id_to_edit_area:
-      self.notebook.tab(str(self.collection_id_to_edit_area[tab_id]), text=name)
     if tab_id in self.request_id_to_edit_area:
       self.notebook.tab(str(self.request_id_to_edit_area[tab_id]), text=name)
 
@@ -108,6 +108,16 @@ class WorkArea(tk.Frame):
     for environment in Project().environments:
       if environment.tree_id in self.environment_id_to_edit_area:
         self.notebook.tab(str(self.environment_id_to_edit_area[environment.tree_id]), text=environment.name)
+
+  def update_collection_tabs(self, data):
+    for collection in Project().collections:
+      if collection.tree_id in self.collection_id_to_edit_area:
+        self.notebook.tab(str(self.collection_id_to_edit_area[collection.tree_id]), text=collection.name)
+
+  def update_request_tabs(self, data):
+    request_id, name = data
+    if request_id in self.request_id_to_edit_area:
+        self.notebook.tab(str(self.request_id_to_edit_area[request_id]), text=name)
 
   def on_close_press(self, event):
     element = self.notebook.identify(event.x, event.y)

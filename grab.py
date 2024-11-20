@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 
+from lilytk.events import ClassListens
+
 from model.project import Project
 from model.request import Request, RequestMethod
 from ui.control_bar import ControlBar
@@ -44,6 +46,7 @@ collection = project.add_new_collection("Many REquests")
 collection.add_request(Request(collection, RequestMethod.GET, "Get Token"))
 collection.add_request(Request(collection, RequestMethod.POST, "Post Man"))
 
+@ClassListens('Project.NameUpdated', 'update_title')
 class Grab(tk.Tk):
   def __init__(self):
     super().__init__()
@@ -70,9 +73,6 @@ class Grab(tk.Tk):
     self.project_hierarchy.on_environment_variable_click_action = self.workarea.open_environment
     self.project_hierarchy.on_collection_click_action = self.workarea.open_collection
     self.project_hierarchy.on_request_click_action = self.workarea.open_request
-    self.project_hierarchy.on_environment_change_actions = [self.workarea.review_environment_tabs, self.control_bar.on_environments_add_remove]
-    self.project_hierarchy.on_collection_name_change = self.workarea.update_tab_name
-    self.project_hierarchy.on_project_name_change_action = self.update_title
     Project().set_hierarchy(self.project_hierarchy)
     Project().refresh_project()
 

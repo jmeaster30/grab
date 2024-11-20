@@ -1,8 +1,11 @@
 import tkinter as tk
 
+from lilytk.events import ClassListens
+
 from model.request import Request, RequestMethod
 from ui.dropdown_select import DropDownSelect
 
+@ClassListens('Request.NameUpdated', 'pull_name')
 class RequestEditArea(tk.Frame):
   def __init__(self, root: tk.Misc, request: Request):
     super().__init__(root)
@@ -29,8 +32,10 @@ class RequestEditArea(tk.Frame):
 
 
   def on_request_name_change(self, event):
-    self.request.name = self.request_name_var.get()
-    self.request.refresh()
+    self.request.set_name(self.request_name_var.get())
+
+  def pull_name(self, data):
+    self.request_name_var.set(self.request.name)
 
   def on_method_change(self, event):
     self.request.method = self.request_method.selected()

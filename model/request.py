@@ -1,5 +1,8 @@
 import tkinter as tk
 from enum import Enum
+
+from lilytk.events import Notifies
+
 from ui.tree_viewable_item import TreeViewableItem
 
 class RequestMethod(Enum):
@@ -30,6 +33,12 @@ class Request(TreeViewableItem):
     self.method: RequestMethod = method
     self.name: str = name
     self.url: str = url
+
+  @Notifies('Request.NameUpdated')
+  def set_name(self, name: str):
+    self.name = name
+    self.refresh()
+    return self.tree_id, self.name
 
   def get_item_options(self) -> tuple[str, tk.Image]:
     return self.name, self.method.get_icon()

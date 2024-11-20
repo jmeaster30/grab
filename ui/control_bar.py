@@ -8,6 +8,8 @@ from model.project import Project
 from ui.dropdown_select import DropDownSelect
 
 @ClassListens('Environment.NameUpdated', 'on_environments_change')
+@ClassListens('Environment.Add', 'on_environments_change')
+@ClassListens('Environment.Remove', 'on_environments_change')
 class ControlBar(tk.Frame):
   def __init__(self, root, environments: list[Environment]):
     super().__init__(root)
@@ -28,9 +30,6 @@ class ControlBar(tk.Frame):
     self.environment_select.pack(side=tk.RIGHT)
 
   def on_environments_change(self, data):
-    self.environment_select.set_options(Project().environments)
-
-  def on_environments_add_remove(self, environments: list[Environment]):
     self.environment_select.set_options(Project().environments)
 
   def on_active_environment_change(self, selected_environment: Optional[Environment]):

@@ -1,12 +1,15 @@
 import tkinter as tk
 from typing import Callable, Optional
 
+from lilytk.events import ClassListens
+
 from model.collection import Collection
 from model.request import Request
 from lilytk.widgets import ScrollableFrame
 
 from ui.left_right_buttons import LeftRightButtons
 
+@ClassListens('Request.NameUpdated', 'pull_name')
 class CollectionRequestRow(tk.Frame):
   def __init__(self, root, request: Request, 
               on_row_selected: Optional[Callable[[str, Request], None]] = None,
@@ -35,8 +38,12 @@ class CollectionRequestRow(tk.Frame):
     self.on_row_open_action = on_row_open
 
   def on_name_change(self, event: tk.Event):
-    self.request.name = self.name_var.get()
-    self.request.refresh()
+    print('on request name change')
+    self.request.set_name(self.name_var.get())
+
+  def pull_name(self, data):
+    print('pulling name')
+    self.name_var.set(self.request.name)
 
   def on_row_open(self):
     if self.on_row_open_action is not None:
@@ -100,6 +107,7 @@ class CollectionEditGrid(ScrollableFrame):
   def set_on_rows_removed(self, on_rows_removed: Callable[[list[Request]], None]):
     self.on_rows_removed = on_rows_removed
 
+@ClassListens('Collection.NameUpdated')
 class CollectionEditArea(tk.Frame):
   def __init__(self, root, collection: Collection, on_row_open: Callable[[Request], None]):
     super().__init__(root)
@@ -126,7 +134,6 @@ class CollectionEditArea(tk.Frame):
 
   def on_collection_name_change(self, event: tk.Event):
     self.collection.set_name(self.collection_name_var.get())
-    self.collection.refresh()
 
   def on_row_selected(self, request: Request, selected_request_ids: list[str]):
     self.add_remove_buttons.set_right_button_clickable(len(selected_request_ids) > 0)
