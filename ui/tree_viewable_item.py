@@ -1,11 +1,15 @@
 import tkinter as tk
 from typing import Optional
 
+from model.project_item import ProjectItem
+
 class TreeViewableItem:
-  def __init__(self, parent: Optional['TreeViewableItem']):
-    self.tree_id = None
+  def __init__(self, parent: Optional['TreeViewableItem'], project_hierarchy, object_id: Optional[str] = None, project_item_type: Optional[ProjectItem] = None):
+    self.tree_id: Optional[str] = None
+    self.project_item_type: Optional[ProjectItem] = project_item_type 
+    self.object_id: Optional[str] = object_id
     self.parent = parent
-    self.project_hierarchy = None
+    self.project_hierarchy = project_hierarchy
 
   def __eq__(self, other):
     if not isinstance(other, TreeViewableItem):
@@ -20,12 +24,7 @@ class TreeViewableItem:
       return None
     return str(self.parent.tree_id)
 
-  def set_hierarchy(self, hierarchy):
-    self.project_hierarchy = hierarchy
-
   def refresh(self, is_open: bool = False):
-    if self.project_hierarchy is None:
-      return
     is_already_open = is_open
     if self.tree_id is None:
       self.tree_id = str(self.project_hierarchy.add_item(self))

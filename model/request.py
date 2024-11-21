@@ -1,9 +1,9 @@
 import tkinter as tk
 from enum import Enum
+from typing import Optional
+from uuid import uuid4
 
 from lilytk.events import Notifies
-
-from ui.tree_viewable_item import TreeViewableItem
 
 class RequestMethod(Enum):
   GET = 1
@@ -27,9 +27,9 @@ class RequestMethod(Enum):
   def get_abbr_name(self: 'RequestMethod') -> str:
     return str(self).upper().removeprefix('REQUESTMETHOD.')[:3]
 
-class Request(TreeViewableItem):
-  def __init__(self, parent: TreeViewableItem, method: RequestMethod = RequestMethod.GET, name: str = "", url: str = ""):
-    super().__init__(parent)
+class Request:
+  def __init__(self, method: RequestMethod = RequestMethod.GET, name: str = "", url: str = "", request_id: Optional[str] = None):
+    self.id: str = str(uuid4()) if request_id is None else request_id
     self.method: RequestMethod = method
     self.name: str = name
     self.url: str = url
@@ -37,8 +37,4 @@ class Request(TreeViewableItem):
   @Notifies('Request.NameUpdated')
   def set_name(self, name: str):
     self.name = name
-    self.refresh()
-    return self.tree_id, self.name
-
-  def get_item_options(self) -> tuple[str, tk.Image]:
-    return self.name, self.method.get_icon()
+    return self.id, self.name

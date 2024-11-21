@@ -38,11 +38,9 @@ class CollectionRequestRow(tk.Frame):
     self.on_row_open_action = on_row_open
 
   def on_name_change(self, event: tk.Event):
-    print('on request name change')
     self.request.set_name(self.name_var.get())
 
   def pull_name(self, data):
-    print('pulling name')
     self.name_var.set(self.request.name)
 
   def on_row_open(self):
@@ -85,10 +83,8 @@ class CollectionEditGrid(ScrollableFrame):
 
   def row_selected(self, request: Request):
     if request.tree_id in self.selected_rows:
-      print("removing selected row")
       self.selected_rows.remove(request.tree_id)
     else:
-      print("adding selected row")
       self.selected_rows.append(request.tree_id)
     if self.on_row_selected is not None:
       self.on_row_selected(request, self.selected_rows)

@@ -36,11 +36,9 @@ class LeftRightButtons(tk.Frame):
     self.right_button.config(state='normal' if is_clickable else 'disabled')
 
   def on_left_button_clicked(self):
-    print(f"left clicked {self.left_button_action}")
     if self.left_button_action is not None:
       self.left_button_action()
 
   def on_right_button_clicked(self):
-    print(f"right clicked {self.right_button_action}")
     if self.right_button_action is not None:
       self.right_button_action()

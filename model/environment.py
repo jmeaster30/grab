@@ -1,96 +1,63 @@
 import tkinter as tk
 from typing import Optional
+from uuid import uuid4, UUID
 
 from lilytk.events import Notifies
 
-from ui.tree_viewable_item import TreeViewableItem
-
-class EnvironmentVariable(TreeViewableItem):
-  def __init__(self, parent: TreeViewableItem, key="New Env Variable", value=""):
-    super().__init__(parent)
+class EnvironmentVariable:
+  def __init__(self, key="New Env Variable", value="", variable_id: Optional[str] = None):
+    self.id = str(uuid4()) if variable_id is None else variable_id
     self.name = key
     self.value = value
 
-  def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
-    return self.name, None
+  @Notifies("EnvironmentVariable.NameUpdated")
+  def set_name(self, name: str):
+    self.name = name
+    return self.id, self.name
 
-class Environment(TreeViewableItem):
-  def __init__(self, parent: TreeViewableItem, env_name: Optional[str] = None):
-    super().__init__(parent)
-    self.active = False
-    self.name = 'New Environment' if env_name is None else env_name
+  @Notifies("EnvironmentVariable.ValeUpdated")
+  def set_value(self, value: str):
+    self.value = value
+    return self.id, self.value
+
+  def __eq__(self, other):
+    if not isinstance(other, self.__class__):
+      return False
+    return self.id == other.id
+
+class Environment:
+  def __init__(self, env_name: Optional[str] = None, env_id: Optional[str] = None):
+    self.id: str = str(uuid4()) if env_id is None else env_id
+    self.active: bool = False
+    self.name: str = 'New Environment' if env_name is None else env_name
     self.variables: list[EnvironmentVariable] = []
 
   @Notifies('Environment.NameUpdated')
   def set_name(self, name: str):
     self.name = name
-    self.refresh()
+    return self.id, self.name
 
-  def add_or_update_environment_variable(self, idx: Optional[int], values: list[str]):
+  @Notifies('Environment.VariableAddUpdate')
+  def add_or_update_environment_variable(self, name: str, value: str, idx: Optional[int] = None):
     if idx is None:
       # adding a new environment variable
-      newvar = EnvironmentVariable(self, values[0], values[1])
-      newvar.set_hierarchy(self.project_hierarchy)
+      newvar = EnvironmentVariable(self, name, value)
       self.variables.append(newvar)
-      return
+      return True, newvar
     
     if idx < 0 or idx >= len(self.variables):
       raise IndexError
     
     envvar = self.variables[idx]
-    envvar.name = values[0]
-    envvar.value = values[1]
+    envvar.name = name
+    envvar.value = value
+    return False, envvar
 
+  @Notifies('Environment.VariableRemove')
   def remove_environment_variable(self, idx: int):
-    self.variables.pop(idx)
-
-  def __getitem__(self, key: str) -> str:
-    for var in self.variables:
-      if var.name == key:
-        return var.value
-    raise KeyError
-
-  def __setitem__(self, key: str, value: str):
-    for var in self.variables:
-      if var.name == key:
-        var.value = value
-        return
-    envvar = EnvironmentVariable(self, key, value)
-    envvar.project_hierarchy = self.project_hierarchy
-    self.variables.append(envvar)
-
-  def __delitem__(self, key: str):
-    envvar = None
-    for var in self.variables:
-      if var.name == key:
-        envvar = var
-        break
-    if envvar is None:
-      raise KeyError
-    self.variables.remove(envvar)
+    return self.variables.pop(idx)
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):
       return False
-    return self.tree_id == other.tree_id
-
-# TODO get rid of this from the data model and make various TreeViewableItem implementations that respond to changes on their corresponding object instances
-  def get_item_options(self) -> tuple[str, Optional[tk.Image]]:
-    return self.name, None
-  
-  def set_hierarchy(self, hierarchy):
-    super().set_hierarchy(hierarchy)
-    for var in self.variables:
-      var.set_hierarchy(hierarchy)
-
-  def refresh(self):
-    if self.project_hierarchy is None:
-      return
-    super().refresh()
-    for variable in self.variables:
-      variable.refresh()
-    # need to go through and remove the rows from the treeview that are not there any more
-    remaining_tree_ids = [str(var.tree_id) for var in self.variables]
-    for child_id in self.project_hierarchy.tree.get_children(self.tree_id):
-      if str(child_id) not in remaining_tree_ids:
-        self.project_hierarchy.tree.delete(child_id)
+    return self.id == other.id

@@ -6,7 +6,7 @@ from lilytk.events import ClassListens
 from model.environment import Environment, EnvironmentVariable
 from ui.entry_table import EntryTable
 from ui.left_right_buttons import LeftRightButtons
-
+from util.getnewname import get_new_name
 @ClassListens('Environment.NameUpdated', 'pull_name')
 class EnvironmentEditArea(tk.Frame):
   def __init__(self, root, environment: Environment):
@@ -54,18 +54,16 @@ class EnvironmentEditArea(tk.Frame):
 
   def on_row_change(self, rowidx: int, colidx: int, values: list[str]):
     self.environment.add_or_update_environment_variable(rowidx, values)
-    if colidx == 0:
-      self.environment.refresh()
 
   def on_name_change(self, event: tk.Event):
     self.environment.set_name(self.environment_name_var.get())
-    #self.environment.refresh()
 
   def pull_name(self, data):
     self.environment_name_var.set(self.environment.name)
 
   def add_env_variable(self):
-    self.variables_grid.append_row(("New Env Var", ""))
+    new_name = get_new_name('New Env Var', [env_var.name for env_var in self.environment.variables])
+    self.variables_grid.append_row((new_name, ""))
 
   def remove_env_variable(self):
     self.variables_grid.remove_rows(self.selected_rows)

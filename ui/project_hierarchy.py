@@ -1,23 +1,33 @@
+from enum import Enum
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional
 
-from lilytk.events import Notifies
+from lilytk.events import Notifies, ClassListens
 
 from model.collection import Collection
-from model.environment import Environment, EnvironmentVariable
-from model.project import CollectionsSection, EnvironmentsSection, Project
-from model.request import Request
+from model.project import Project
+from model.project_item import ProjectItem
 from ui.left_right_buttons import LeftRightButtons
 from ui.tree_viewable_item import TreeViewableItem
+from ui.view.collection.collection_tree_item import CollectionTreeItem
+from ui.view.collection.collections_section_tree_item import CollectionsSection
+from ui.view.collection.request_tree_item import RequestTreeItem
+from ui.view.environment.environment_tree_item import EnvironmentTreeItem
+from ui.view.environment.environment_variable_tree_item import EnvironmentVariableTreeItem
+from ui.view.environment.environments_section_tree_item import EnvironmentsSection
 from util.getnewname import get_new_name
 
+@ClassListens('Environment.Add', 'refresh_environments')
+@ClassListens('Environment.Remove', 'refresh_environments')
+@ClassListens('Collection.Add', 'refresh_collections')
+@ClassListens('Collection.Remove', 'refresh_collections')
 class ProjectHierarchy(tk.Frame):
   def __init__(self, root):
     super().__init__(root)
     self.max_id = 0
 
-    self.project_name_var = tk.StringVar()
+    self.project_name_var = tk.StringVar(value=Project().name)
     self.project_name_entry = ttk.Entry(self, textvariable=self.project_name_var)
     self.project_name_entry.bind('<KeyRelease>', self.project_name_changed)
 
@@ -39,37 +49,47 @@ class ProjectHierarchy(tk.Frame):
     self.button_controls.grid(row=2, column=0, sticky=tk.EW)
 
     self.tree_viewable_item_map: dict[str, TreeViewableItem] = {}
-    self.on_environment_variable_click_action = None
-    self.on_collection_click_action = None
-    self.on_request_click_action = None
 
+    self.environments_section = EnvironmentsSection(None, self)
+    self.environments_section.tree_id = self.add_item(self.environments_section, True)
+    self.collections_section = CollectionsSection(None, self)
+    self.collections_section.tree_id = self.add_item(self.collections_section, True)
+    #self.on_environment_variable_click_action = None
+    #self.on_collection_click_action = None
+    #self.on_request_click_action = None
+
+  def refresh_project(self):
+    self.project_hierarchy.project_name_var.set(self.name)
+
+  def refresh_environments(self, data):
+    self.environments_section.refresh()
+    env_uuids = Project().environments.keys()
+    for tree_item in self.get_children(self.environments_section.tree_id):
+      if tree_item.tree_id not in self.tree_viewable_item_map.keys():
+        self.tree.delete(tree_item.tree_id)
+      elif tree_item.project_item_type == ProjectItem.Environment:
+        if tree_item.environment_id in env_uuids:
+          tree_item.refresh()
+        else:
+          self.tree.delete(tree_item.tree_id)
+
+  def refresh_collections(self, data):
+    self.collections_section.refresh()
+    col_uuids = Project().collections.keys()
+    for tree_item in self.get_children(self.collections_section.tree_id):
+      if tree_item.tree_id not in self.tree_viewable_item_map.keys():
+        self.tree.delete(tree_item.tree_id)
+      elif tree_item.project_item_type == ProjectItem.Collection:
+        if tree_item.collection_id in col_uuids:
+          tree_item.refresh()
+        else:
+          self.tree.delete(tree_item.tree_id)
+
+  @Notifies('ProjectHierarchy.ItemClicked')
   def on_double_click(self, event: tk.Event):
     tree_id = self.tree.identify_row(event.y)
     item = self.tree_viewable_item_map[tree_id]
-    
-    # TODO I think I can get rid of these click_actions but they are mostly fine rn
-    match item:
-      case Environment():
-        print(f"found environment: {item.get_item_options()[0]}")
-        if self.on_environment_variable_click_action is not None:
-          self.on_environment_variable_click_action(item, None)
-      case EnvironmentVariable():
-        parent_id = item.get_parent_id()
-        print(parent_id)
-        parent_item = self.tree_viewable_item_map[parent_id]
-        print(f"found environment variable: {parent_item.get_item_options()[0]} -> {item.get_item_options()[0]}")
-        if self.on_environment_variable_click_action is not None:
-          self.on_environment_variable_click_action(parent_item, item)
-      case Collection():
-        print(f"found collection {item.name}")
-        if self.on_collection_click_action is not None:
-          self.on_collection_click_action(item)
-      case Request():
-        print(f"found request {item.name}")
-        if self.on_request_click_action is not None:
-          self.on_request_click_action(item)
-      case _:
-        print(f"unhandled item :( {item}")
+    return item.project_item_type, item.object_id, item.get_parent_id()
 
   def on_tree_selection(self, event):
     if len(self.tree.selection()) == 0:
@@ -86,36 +106,36 @@ class ProjectHierarchy(tk.Frame):
       case EnvironmentsSection():
         self.add_button_controls("Environment", True, self.add_environment)
         self.remove_button_controls(None, False, None)
-      case Environment():
+      case EnvironmentTreeItem():
         self.add_button_controls("Environment", True, self.add_environment)
         self.remove_button_controls("Environment", True, self.remove_environment)
-      case EnvironmentVariable():
+      case EnvironmentVariableTreeItem():
         self.add_button_controls("Environment", True, self.add_environment)
         self.remove_button_controls(None, False, None)
-      case Collection():
+      case CollectionTreeItem():
         self.add_button_controls("Collection", True, self.add_collection)
         self.remove_button_controls("Collection", True, self.remove_collection)
-      case Request():
+      case RequestTreeItem():
         self.add_button_controls("Collection", True, self.add_collection)
         self.remove_button_controls(None, False, None)
       case _:
         self.add_button_controls(None, False, None)
         self.remove_button_controls(None, False, None)
 
-  def get_children(self, parent_id: Optional[int]) -> list[TreeViewableItem]:
+  def get_children(self, parent_id: Optional[str]) -> list[TreeViewableItem]:
     item_ids = self.tree.get_children(parent_id)
     return [self.tree_viewable_item_map[id] for id in item_ids]
 
-  def add_item(self, tree_item: TreeViewableItem, is_open: bool = True) -> int:
+  def add_item(self, tree_item: TreeViewableItem, is_open: bool = True) -> str:
     self.max_id += 1
+    self.max_id_str = str(self.max_id)
     text, _ = tree_item.get_item_options()
-    self.tree.insert('', tk.END, text=text, iid=self.max_id, open=is_open)
+    self.tree.insert('', tk.END, text=text, iid=self.max_id_str, open=is_open)
     if tree_item.get_parent_id() is not None:
-      child_num = len(self.tree.get_children(tree_item.get_parent_id()))
-      self.tree.move(self.max_id, tree_item.get_parent_id(), child_num)
-    self.tree_viewable_item_map[str(self.max_id)] = tree_item
-    tree_item.tree_id = str(self.max_id)
-    return self.max_id
+      child_num = len(self.get_children(tree_item.get_parent_id()))
+      self.tree.move(self.max_id_str, tree_item.get_parent_id(), child_num)
+    self.tree_viewable_item_map[self.max_id_str] = tree_item
+    return self.max_id_str
 
   def add_button_controls(self, text: Optional[str], clickable: bool, action: Optional[Callable]):
     self.button_controls.update_left_button_text(f'+ {"Add" if text is None else text}')
@@ -128,32 +148,34 @@ class ProjectHierarchy(tk.Frame):
     self.button_controls.right_button_action = action
 
   def add_environment(self):
-    new_env_name = get_new_name('Environment', [env.name for env in Project().environments])
-    Project().add_new_environment(new_env_name)
+    new_env_name = get_new_name('Environment', [env.name for env in Project().environments.values()])
+    environment = Project().add_new_environment(new_env_name)
+    tree_item = EnvironmentTreeItem(self.environments_section, self, environment.name, environment.id)
+    tree_item.tree_id = self.add_item(tree_item)
 
   def remove_environment(self):
     item_id = self.tree.selection()[0]
     item = self.tree_viewable_item_map[item_id]
     match item:
-      case Environment():
-        Project().remove_environment(item)
+      case EnvironmentTreeItem():
+        Project().remove_environment(item.environment_id)
       case _:
         print(f"Unexpected item in remove_environment call {item}")
 
   def add_collection(self):
-    new_collection_name = get_new_name('Collection', [coll.name for coll in Project().collections])
-    Project().add_new_collection(new_collection_name)
+    new_collection_name = get_new_name('Collection', [coll.name for coll in Project().collections.values()])
+    collection = Project().add_new_collection(new_collection_name)
+    tree_item = CollectionTreeItem(self.collections_section, self, collection.name, collection.id)
+    tree_item.tree_id = self.add_item(tree_item)
 
   def remove_collection(self):
     item_id = self.tree.selection()[0]
     item = self.tree_viewable_item_map[item_id]
     match item:
       case Collection():
-        Project().remove_collection(item)
+        Project().remove_collection(item.collection_id)
       case _:
         print(f"Unexpected item in remove_collection call {item}")
 
-  @Notifies('Project.NameUpdated')
   def project_name_changed(self, event):
-    Project().name = self.project_name_var.get()
-    return Project().name
+    Project().set_name(self.project_name_var.get())
