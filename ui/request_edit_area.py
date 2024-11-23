@@ -30,7 +30,6 @@ class RequestEditArea(tk.Frame):
     self.url_entry.grid(row=1, column=1, sticky=tk.EW)
     self.url_entry.bind('<KeyRelease>', self.on_url_change)
 
-
   def on_request_name_change(self, event):
     self.request.set_name(self.request_name_var.get())
 

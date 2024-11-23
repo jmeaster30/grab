@@ -1,11 +1,11 @@
 import tkinter as tk
 from typing import Optional
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 from lilytk.events import Notifies
 
 class EnvironmentVariable:
-  def __init__(self, key="New Env Variable", value="", variable_id: Optional[str] = None):
+  def __init__(self, key="New Env Var", value="", variable_id: Optional[str] = None):
     self.id = str(uuid4()) if variable_id is None else variable_id
     self.name = key
     self.value = value
@@ -15,7 +15,7 @@ class EnvironmentVariable:
     self.name = name
     return self.id, self.name
 
-  @Notifies("EnvironmentVariable.ValeUpdated")
+  @Notifies("EnvironmentVariable.ValueUpdated")
   def set_value(self, value: str):
     self.value = value
     return self.id, self.value
@@ -36,22 +36,40 @@ class Environment:
   def set_name(self, name: str):
     self.name = name
     return self.id, self.name
+  
+  @Notifies('Environment.SetActive')
+  def set_active(self, active: bool):
+    self.active = active
+    return self.id, self.active
+  
+  def get_variable_by_id(self, variable_id: str) -> Optional[EnvironmentVariable]:
+    for variable in self.variables:
+      if variable.id == variable_id:
+        return variable
+    return None
+  
+  @Notifies('Environment.VariableAddUpdate')
+  def add_environment_variable(self, name: str, variable_id: str):
+    env_var = EnvironmentVariable(key=name, variable_id=variable_id)
+    self.variables.append(env_var)
+    return self.id, True, env_var
 
   @Notifies('Environment.VariableAddUpdate')
-  def add_or_update_environment_variable(self, name: str, value: str, idx: Optional[int] = None):
+  def add_or_update_environment_variable(self, idx: Optional[int], values: tuple[str, str]):
+    (name, value) = values
     if idx is None:
       # adding a new environment variable
-      newvar = EnvironmentVariable(self, name, value)
+      newvar = EnvironmentVariable(name, value)
       self.variables.append(newvar)
-      return True, newvar
+      return self.id, True, newvar
     
     if idx < 0 or idx >= len(self.variables):
       raise IndexError
     
     envvar = self.variables[idx]
-    envvar.name = name
-    envvar.value = value
-    return False, envvar
+    envvar.set_name(name)
+    envvar.set_value(value)
+    return self.id, False, envvar
 
   @Notifies('Environment.VariableRemove')
   def remove_environment_variable(self, idx: int):

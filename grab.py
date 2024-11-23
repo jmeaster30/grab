@@ -4,13 +4,13 @@ from tkinter import ttk
 from lilytk.events import ClassListens
 
 from model.project import Project
-from model.request import Request, RequestMethod
 from ui.control_bar import ControlBar
 from ui.layout_config import LayoutConfig
 from ui.project_hierarchy import ProjectHierarchy
 from ui.workarea import WorkArea
 
 @ClassListens('Project.NameUpdated', 'update_title')
+@ClassListens('Project.Modified', 'update_title')
 class Grab(tk.Tk):
   def __init__(self):
     super().__init__()
@@ -35,8 +35,8 @@ class Grab(tk.Tk):
     self.workarea.pack(expand=True, fill=tk.BOTH)
     self.paned_window.add(self.workarea)
 
-  def update_title(self, project_name: str):
-    self.title(f"{LayoutConfig().window.title} - {project_name}")
+  def update_title(self, data):
+    self.title(f"{LayoutConfig().window.title} - {Project().name} {'*' if Project().modified else ''}")
 
 if __name__ == "__main__":
   app = Grab()

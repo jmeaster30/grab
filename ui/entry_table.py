@@ -2,9 +2,11 @@ import tkinter as tk
 from typing import Callable, Optional
 from lilytk.widgets import ScrollableFrame
 from lilytk.capabilities import Highlightable
+from lilytk.events import ClassListens
 
 from ui.layout_config import LayoutConfig
 
+# TODO this is fairly pointless to be this generic. While it is useful I think it would be more useful if this was more closely tied to the environments/environment variables
 class EntryTable(tk.Frame):
   def __init__(self, root, columns: tuple[str,...], initial_data: list[tuple[str,...]] = [], 
               on_row_change: Optional[Callable[[int, int, list[str]], None]] = None, 
@@ -13,7 +15,7 @@ class EntryTable(tk.Frame):
               on_select_change: Optional[Callable[[int, list[str]], None]] = None):
     super().__init__(root)
 
-    self.heading_entry = EntryRow(self, -1, values=columns, editable=False)
+    self.heading_entry = EntryRow(self, -1, '', values=columns, editable=False)
     self.heading_entry.pack(fill=tk.X)
 
     self.table_frame = ScrollableFrame(self, orient=tk.VERTICAL)
@@ -26,19 +28,21 @@ class EntryTable(tk.Frame):
     self.on_select_change: Optional[Callable[[int, list[str]], None]] = on_select_change
 
     for row_idx in range(0, len(initial_data)):
-      row = EntryRow(self.table_frame, row_idx, initial_data[row_idx], on_row_change_action=self.on_row_change, on_select_change_action=self.on_select_change)
-      row.pack(fill=tk.X)
-      self.variable_table.append(row)
+      (object_id, *data) = initial_data[row_idx]
+      self.__internal_add(object_id, data)
 
-  def append_row(self, values: tuple[str,...]):
-    entry_row = EntryRow(self.table_frame, len(self.variable_table), values, on_row_change_action=self.on_row_change, on_select_change_action=self.on_select_change)
+  def __internal_add(self, object_id: str, values: tuple[str,...]) -> 'EntryRow':
+    entry_row = EntryRow(self.table_frame, len(self.variable_table), object_id, values, on_row_change_action=self.on_row_change, on_select_change_action=self.on_select_change)
     entry_row.pack(fill=tk.X)
     self.variable_table.append(entry_row)
+    return entry_row
+
+  def append_row(self, object_id: str, values: tuple[str,...], show: bool = True):
+    entry_row = self.__internal_add(object_id, values)
     if self.on_row_add is not None:
-      self.on_row_add(len(self.variable_table), list(values))
-    self.unhighlight_all_rows()
-    # FIXME this is hack and sucks real bad
-    self.after(100, lambda: self.highlight_index(len(self.variable_table) - 1))
+      self.on_row_add(len(self.variable_table) - 1, list(values))
+    if show:
+      self.table_frame.show(entry_row)
 
   def remove_row(self, index: int) -> list[str]:
     to_remove = self.variable_table.pop(index)
@@ -59,6 +63,7 @@ class EntryTable(tk.Frame):
     self.highlight_index(index)
 
   def highlight_index(self, index: int):
+    self.unhighlight_all_rows()
     widget = self.variable_table[index]
     self.table_frame.show(widget)
     widget.highlight()
@@ -87,8 +92,10 @@ class EntryTable(tk.Frame):
     for entry_row in self.variable_table:
       entry_row.set_select_change_action(select_change_action)
 
+@ClassListens('EnvironmentVariable.NameUpdated', 'update_name')
+@ClassListens('EnvironmentVariable.ValueUpdated', 'update_value')
 class EntryRow(tk.Frame, Highlightable):
-  def __init__(self, root, row_id: int, values: tuple[str,...], editable: bool = True, on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = None, on_select_change_action: Optional[Callable[[int, bool], None]] = None):
+  def __init__(self, root, row_id: int, object_id: str, values: tuple[str,...], editable: bool = True, on_row_change_action: Optional[Callable[[int, int, list[str]], None]] = None, on_select_change_action: Optional[Callable[[int, bool], None]] = None):
     tk.Frame.__init__(self, root)
     Highlightable.__init__(self, highlight_color=LayoutConfig().highlight.color, 
                           highlight_width=LayoutConfig().highlight.width, 
@@ -96,6 +103,7 @@ class EntryRow(tk.Frame, Highlightable):
                           blink_duration_ms=LayoutConfig().highlight.blink_duration)
 
     self.row_id = row_id
+    self.object_id = object_id
     self.editable = editable
     self.internal_values: list[tuple[tk.StringVar, tk.Entry]] = []
 
@@ -130,6 +138,16 @@ class EntryRow(tk.Frame, Highlightable):
     if idx < 0 or idx >= len(self.internal_values):
       return None
     self.internal_values[idx][0].set(value)
+
+  def update_name(self, data):
+    (ev_id, name) = data
+    if ev_id == self.object_id:
+      self.internal_values[0][0].set(name)
+
+  def update_value(self, data):
+    (ev_id, value) = data
+    if ev_id == self.object_id:
+      self.internal_values[1][0].set(value)
 
   def set_editable(self, editable: bool):
     self.editable = editable

@@ -18,9 +18,10 @@ from ui.view.environment.environment_variable_tree_item import EnvironmentVariab
 from ui.view.environment.environments_section_tree_item import EnvironmentsSection
 from util.getnewname import get_new_name
 
-@ClassListens('Environment.Add', 'refresh_environments')
+@ClassListens('Project.NameUpdated', 'refresh_project')
+@ClassListens('Environment.Add', 'create_environment_tree_item')
 @ClassListens('Environment.Remove', 'refresh_environments')
-@ClassListens('Collection.Add', 'refresh_collections')
+@ClassListens('Collection.Add', 'create_collection_tree_item')
 @ClassListens('Collection.Remove', 'refresh_collections')
 class ProjectHierarchy(tk.Frame):
   def __init__(self, root):
@@ -54,12 +55,9 @@ class ProjectHierarchy(tk.Frame):
     self.environments_section.tree_id = self.add_item(self.environments_section, True)
     self.collections_section = CollectionsSection(None, self)
     self.collections_section.tree_id = self.add_item(self.collections_section, True)
-    #self.on_environment_variable_click_action = None
-    #self.on_collection_click_action = None
-    #self.on_request_click_action = None
 
-  def refresh_project(self):
-    self.project_hierarchy.project_name_var.set(self.name)
+  def refresh_project(self, data):
+    self.project_name_var.set(data)
 
   def refresh_environments(self, data):
     self.environments_section.refresh()
@@ -91,6 +89,12 @@ class ProjectHierarchy(tk.Frame):
     item = self.tree_viewable_item_map[tree_id]
     return item.project_item_type, item.object_id, item.get_parent_id()
 
+  def get_by_tree_id(self, tree_id: str) -> Optional[TreeViewableItem]:
+    for item in self.tree_viewable_item_map.values():
+      if item.tree_id == tree_id:
+        return item
+    return None
+
   def on_tree_selection(self, event):
     if len(self.tree.selection()) == 0:
       self.add_button_controls(None, False, None)
@@ -98,7 +102,7 @@ class ProjectHierarchy(tk.Frame):
       return
 
     item_id = self.tree.selection()[0]
-    item = self.tree_viewable_item_map[item_id]
+    item = self.get_by_tree_id(item_id)
     match item:
       case CollectionsSection():
         self.add_button_controls("Collection", True, self.add_collection)
@@ -106,21 +110,23 @@ class ProjectHierarchy(tk.Frame):
       case EnvironmentsSection():
         self.add_button_controls("Environment", True, self.add_environment)
         self.remove_button_controls(None, False, None)
-      case EnvironmentTreeItem():
-        self.add_button_controls("Environment", True, self.add_environment)
-        self.remove_button_controls("Environment", True, self.remove_environment)
-      case EnvironmentVariableTreeItem():
-        self.add_button_controls("Environment", True, self.add_environment)
-        self.remove_button_controls(None, False, None)
-      case CollectionTreeItem():
-        self.add_button_controls("Collection", True, self.add_collection)
-        self.remove_button_controls("Collection", True, self.remove_collection)
-      case RequestTreeItem():
-        self.add_button_controls("Collection", True, self.add_collection)
-        self.remove_button_controls(None, False, None)
       case _:
-        self.add_button_controls(None, False, None)
-        self.remove_button_controls(None, False, None)
+        match item.project_item_type:
+          case ProjectItem.Environment:
+            self.add_button_controls("Environment", True, self.add_environment)
+            self.remove_button_controls("Environment", True, self.remove_environment)
+          case ProjectItem.EnvironmentVariable:
+            self.add_button_controls("Environment", True, self.add_environment)
+            self.remove_button_controls(None, False, None)
+          case ProjectItem.Collection:
+            self.add_button_controls("Collection", True, self.add_collection)
+            self.remove_button_controls("Collection", True, self.remove_collection)
+          case ProjectItem.Request:
+            self.add_button_controls("Collection", True, self.add_collection)
+            self.remove_button_controls(None, False, None)
+          case _:
+            self.add_button_controls(None, False, None)
+            self.remove_button_controls(None, False, None)
 
   def get_children(self, parent_id: Optional[str]) -> list[TreeViewableItem]:
     item_ids = self.tree.get_children(parent_id)
@@ -132,8 +138,8 @@ class ProjectHierarchy(tk.Frame):
     text, _ = tree_item.get_item_options()
     self.tree.insert('', tk.END, text=text, iid=self.max_id_str, open=is_open)
     if tree_item.get_parent_id() is not None:
-      child_num = len(self.get_children(tree_item.get_parent_id()))
-      self.tree.move(self.max_id_str, tree_item.get_parent_id(), child_num)
+      child_num = len(self.get_children(tree_item.get_parent_id().tree_id))
+      self.tree.move(self.max_id_str, tree_item.get_parent_id().tree_id, child_num)
     self.tree_viewable_item_map[self.max_id_str] = tree_item
     return self.max_id_str
 
@@ -149,9 +155,12 @@ class ProjectHierarchy(tk.Frame):
 
   def add_environment(self):
     new_env_name = get_new_name('Environment', [env.name for env in Project().environments.values()])
-    environment = Project().add_new_environment(new_env_name)
+    Project().add_new_environment(new_env_name)
+
+  def create_environment_tree_item(self, environment):
     tree_item = EnvironmentTreeItem(self.environments_section, self, environment.name, environment.id)
     tree_item.tree_id = self.add_item(tree_item)
+    self.refresh_environments(None)
 
   def remove_environment(self):
     item_id = self.tree.selection()[0]
@@ -164,9 +173,12 @@ class ProjectHierarchy(tk.Frame):
 
   def add_collection(self):
     new_collection_name = get_new_name('Collection', [coll.name for coll in Project().collections.values()])
-    collection = Project().add_new_collection(new_collection_name)
+    Project().add_new_collection(new_collection_name)
+
+  def create_collection_tree_item(self, collection):
     tree_item = CollectionTreeItem(self.collections_section, self, collection.name, collection.id)
     tree_item.tree_id = self.add_item(tree_item)
+    self.refresh_collections(None)
 
   def remove_collection(self):
     item_id = self.tree.selection()[0]

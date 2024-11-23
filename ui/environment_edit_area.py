@@ -23,7 +23,7 @@ class EnvironmentEditArea(tk.Frame):
     self.environment_name_entry.grid(row=0, column=0, sticky=tk.EW)
     self.environment_name_entry.bind('<KeyRelease>', self.on_name_change)
 
-    self.variables_grid = EntryTable(self, columns=("Name", "Value"), initial_data=[(envvar.name, envvar.value) for envvar in self.environment.variables])
+    self.variables_grid = EntryTable(self, columns=("Name", "Value"), initial_data=[(envvar.id, envvar.name, envvar.value) for envvar in self.environment.variables])
     self.variables_grid.grid(row=1, column=0, sticky=tk.NSEW)
 
     self.variables_grid.set_select_change_action(self.on_row_select)
@@ -45,12 +45,11 @@ class EnvironmentEditArea(tk.Frame):
     self.buttons.set_right_button_clickable(len(self.selected_rows) != 0)
 
   def on_row_add(self, idx: int, values: list[str]):
-    self.environment.add_or_update_environment_variable(None, values)
-    self.environment.refresh()
+    (_, _, envvar) = self.environment.add_or_update_environment_variable(None, values)
+    self.variables_grid.variable_table[idx].object_id = envvar.id
 
   def on_row_remove(self, idx: int, values: list[str]):
     self.environment.remove_environment_variable(idx)
-    self.environment.refresh()
 
   def on_row_change(self, rowidx: int, colidx: int, values: list[str]):
     self.environment.add_or_update_environment_variable(rowidx, values)
@@ -62,8 +61,8 @@ class EnvironmentEditArea(tk.Frame):
     self.environment_name_var.set(self.environment.name)
 
   def add_env_variable(self):
-    new_name = get_new_name('New Env Var', [env_var.name for env_var in self.environment.variables])
-    self.variables_grid.append_row((new_name, ""))
+    new_name = get_new_name('Env Var', [env_var.name for env_var in self.environment.variables])
+    self.variables_grid.append_row(None, (new_name, ""))
 
   def remove_env_variable(self):
     self.variables_grid.remove_rows(self.selected_rows)

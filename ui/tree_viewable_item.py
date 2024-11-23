@@ -3,6 +3,11 @@ from typing import Optional
 
 from model.project_item import ProjectItem
 
+class TreeItemId:
+  def __init__(self, object_id: str, tree_id: str):
+    self.object_id = object_id
+    self.tree_id = tree_id
+
 class TreeViewableItem:
   def __init__(self, parent: Optional['TreeViewableItem'], project_hierarchy, object_id: Optional[str] = None, project_item_type: Optional[ProjectItem] = None):
     self.tree_id: Optional[str] = None
@@ -19,10 +24,10 @@ class TreeViewableItem:
   def get_item_options(self) -> tuple[str, tk.Image]:
     pass
 
-  def get_parent_id(self) -> Optional[str]:
+  def get_parent_id(self) -> Optional[TreeItemId]:
     if self.parent is None:
       return None
-    return str(self.parent.tree_id)
+    return TreeItemId(self.parent.object_id, str(self.parent.tree_id))
 
   def refresh(self, is_open: bool = False):
     is_already_open = is_open

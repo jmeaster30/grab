@@ -19,6 +19,13 @@ class RequestMethod(Enum):
   @classmethod
   def get_all(cls) -> list['RequestMethod']:
     return [member for member in cls.__members__.values()]
+  
+  @classmethod
+  def from_str(cls, method: str) -> 'RequestMethod':
+    return cls.__members__[method]
+
+  def __str__(self: 'RequestMethod') -> str:
+    self.name
 
   def get_icon(self: 'RequestMethod') -> tk.Image:
     #return tk.PhotoImage(file=f'ui/{self.__str__().lower()}.png')

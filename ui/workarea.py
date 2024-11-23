@@ -47,7 +47,7 @@ class WorkArea(tk.Frame):
       case ProjectItem.Environment:
         self.open_environment(Project().environments[object_id])
       case ProjectItem.EnvironmentVariable:
-        env = Project().environments[parent_id]
+        env = Project().environments[parent_id.object_id]
         variables = [envvar for envvar in env.variables if envvar.id == object_id]
         if len(variables) != 1:
           raise ValueError(f"Couldn't find environment variable with id '{object_id}' in environment '{env.name}'")
@@ -55,11 +55,9 @@ class WorkArea(tk.Frame):
       case ProjectItem.Collection:
         self.open_collection(Project().collections[object_id])
       case ProjectItem.Request:
-        col = Project().collections[parent_id]
-        requests = [req for req in col.requests if req.id == object_id]
-        if len(requests) != 1:
-          raise ValueError(f"Couldn't find request with id '{object_id}' in collection '{col.name}'")
-        self.open_request(requests[0])
+        col = Project().collections[parent_id.object_id]
+        request = col.requests[object_id]
+        self.open_request(request)
 
   def open_environment(self, environment: Environment, highlighted_variable: Optional[EnvironmentVariable] = None):
     tab_frame = None
