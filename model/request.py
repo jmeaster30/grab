@@ -25,7 +25,7 @@ class RequestMethod(Enum):
     return cls.__members__[method]
 
   def __str__(self: 'RequestMethod') -> str:
-    self.name
+    return self.name
 
   def get_icon(self: 'RequestMethod') -> tk.Image:
     #return tk.PhotoImage(file=f'ui/{self.__str__().lower()}.png')
@@ -40,8 +40,31 @@ class Request:
     self.method: RequestMethod = method
     self.name: str = name
     self.url: str = url
+    self.headers: list[tuple[str, str]] = []
+    self.parameters: list[tuple[str, str]] = []
+    self.body: str = ''
 
+  @Notifies('Project.HasChanges')
   @Notifies('Request.NameUpdated')
   def set_name(self, name: str):
     self.name = name
     return self.id, self.name
+  
+  @Notifies('Project.HasChanges')
+  def add_update_header(self, idx: Optional[int], name: str, value: str):
+    if idx == len(self.headers) or idx is None:
+      self.headers.append((name, value))
+    else:
+      self.headers[idx] = (name, value)
+
+  @Notifies('Project.HasChanges')
+  def add_update_parameters(self, idx: Optional[int], name: str, value: str):
+    if idx == len(self.parameters) or idx is None:
+      self.parameters.append((name, value))
+    else:
+      self.parameters[idx] = (name, value)
+
+  @Notifies('Project.HasChanges')
+  def set_body(self, text: str):
+    print(f"body: '{text}'")
+    self.body = text

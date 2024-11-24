@@ -1,4 +1,3 @@
-import tkinter as tk
 from typing import Optional
 from uuid import uuid4
 
@@ -10,11 +9,13 @@ class EnvironmentVariable:
     self.name = key
     self.value = value
 
+  @Notifies("Project.HasChanges")
   @Notifies("EnvironmentVariable.NameUpdated")
   def set_name(self, name: str):
     self.name = name
     return self.id, self.name
 
+  @Notifies("Project.HasChanges")
   @Notifies("EnvironmentVariable.ValueUpdated")
   def set_value(self, value: str):
     self.value = value
@@ -32,11 +33,13 @@ class Environment:
     self.name: str = 'New Environment' if env_name is None else env_name
     self.variables: list[EnvironmentVariable] = []
 
+  @Notifies("Project.HasChanges")
   @Notifies('Environment.NameUpdated')
   def set_name(self, name: str):
     self.name = name
     return self.id, self.name
   
+  @Notifies("Project.HasChanges")
   @Notifies('Environment.SetActive')
   def set_active(self, active: bool):
     self.active = active
@@ -48,12 +51,14 @@ class Environment:
         return variable
     return None
   
+  @Notifies("Project.HasChanges")
   @Notifies('Environment.VariableAddUpdate')
   def add_environment_variable(self, name: str, variable_id: str):
     env_var = EnvironmentVariable(key=name, variable_id=variable_id)
     self.variables.append(env_var)
     return self.id, True, env_var
 
+  @Notifies("Project.HasChanges")
   @Notifies('Environment.VariableAddUpdate')
   def add_or_update_environment_variable(self, idx: Optional[int], values: tuple[str, str]):
     (name, value) = values
@@ -71,6 +76,7 @@ class Environment:
     envvar.set_value(value)
     return self.id, False, envvar
 
+  @Notifies("Project.HasChanges")
   @Notifies('Environment.VariableRemove')
   def remove_environment_variable(self, idx: int):
     return self.variables.pop(idx)

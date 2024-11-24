@@ -62,7 +62,7 @@ class CollectionEditGrid(ScrollableFrame):
     self.selected_rows: list[str] = []
     self.request_rows: dict[str, CollectionRequestRow] = {}
 
-    for request in collection.requests.items():
+    for request in collection.requests.values():
       self.request_rows[request.id] = CollectionRequestRow(self, request, on_row_selected=self.row_selected, on_row_open=self.on_row_open)
       self.request_rows[request.id].pack(fill=tk.X)
 

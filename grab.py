@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
 import tkinter as tk
 from tkinter import ttk
 
@@ -39,5 +43,14 @@ class Grab(tk.Tk):
     self.title(f"{LayoutConfig().window.title} - {Project().name} {'*' if Project().modified else ''}")
 
 if __name__ == "__main__":
+  argparser = argparse.ArgumentParser(prog='grab', description='graphical rest api badgerer')
+  argparser.add_argument('project', nargs='?', default='.', help='Project file to open')
+  print(sys.argv)
+  args = argparser.parse_args(sys.argv[1:])
+
   app = Grab()
+  print(args)
+  if args.project != '.':
+    Project().open(args.project)
+
   app.mainloop()

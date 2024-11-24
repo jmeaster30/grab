@@ -1,6 +1,6 @@
 from enum import Enum
 import tkinter as tk
-from tkinter import font, ttk
+from tkinter import font as tkfont, ttk
 from lilytk.utils import Singleton
 
 class Colors(Enum):
@@ -30,7 +30,6 @@ class WindowConfig:
   def size(self) -> str:
     return f'{self.width}x{self.height}'
 
-
 @Singleton
 class LayoutConfig:
   def __init__(self):
@@ -41,6 +40,9 @@ class LayoutConfig:
 
     self.style = ttk.Style()
     self.style.configure("Treeview", font=(None, self.fontSize), rowheight=int(self.fontSize * 3.2))
+
+    font = tkfont.Font(font=(None, self.fontSize))
+    self.text_tab = font.measure('    ')
 
     #
     #  THE FOLLOWING IS ALL CONFIG FOR WorkArea SO THE TABS CAN HAVE A CLOSE BUTTON

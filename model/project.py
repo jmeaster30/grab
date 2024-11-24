@@ -9,11 +9,7 @@ from lilytk.events import Notifies, ClassListens
 from model.request import Request, RequestMethod
 
 @Singleton
-@ClassListens('Project.NameUpdated', 'set_modified')
-@ClassListens('Environment.Add', 'set_modified')
-@ClassListens('Environment.Remove', 'set_modified')
-@ClassListens('Collection.Add', 'set_modified')
-@ClassListens('Collection.Remove', 'set_modified')
+@ClassListens('Project.HasChanges', 'set_modified')
 class Project:  
   def __init__(self, name="Empty Project"):
     self.name = name
@@ -28,14 +24,11 @@ class Project:
     match value:
       case bool():
         self.modified = value
-      case str():
-        self.modified = True
-      case Environment():
-        self.modified = True
-      case Collection():
+      case _:
         self.modified = True
     return self.modified
 
+  @Notifies("Project.HasChanges")
   @Notifies('Project.NameUpdated')
   def set_name(self, data: str):
     self.name = data
@@ -123,6 +116,26 @@ class Project:
           'url': request.url,
           'id': request.id
         })
+
+        for header_name, header_value in request.headers:
+          header_node = etree.Element('Header', {
+            'name': header_name,
+            'value': header_value
+          })
+          request_node.append(header_node)
+        
+        for parameter_name, parameter_value in request.parameters:
+          parameter_node = etree.Element('Parameter', {
+            'name': parameter_name,
+            'value': parameter_value
+          })
+          request_node.append(parameter_node)
+
+        if len(request.body) > 0:
+          body_node = etree.Element('Body')
+          body_node.text = request.body
+          request_node.append(body_node)
+        
         col_node.append(request_node)
       collections_section_node.append(col_node)
     doc.append(collections_section_node)
@@ -188,13 +201,27 @@ class XMLProjectBuilder:
         Project().collections[col_id].add_request(req)
         self.builder_id_stack.append(req.id)
         self.tag_stack.append(tag)
+      case 'Header', [*head, 'Request']:
+        col_id = self.builder_id_stack[-2]
+        req_id = self.builder_id_stack[-1]
+        header_name = attrib['name']
+        header_value = attrib['value']
+        Project().collections[col_id].requests[req_id].add_update_header(None, header_name, header_value)
+      case 'Parameter', [*head, 'Request']:
+        col_id = self.builder_id_stack[-2]
+        req_id = self.builder_id_stack[-1]
+        parameter_name = attrib['name']
+        parameter_value = attrib['value']
+        Project().collections[col_id].requests[req_id].add_update_parameters(None, parameter_name, parameter_value)
+      case 'Body', [*head, 'Request']:
+        self.tag_stack.append(tag)
       case _:
         raise etree.ParserError(f'Unknown opening tag "{tag}" with top of tag stack "{self.tag_stack[-1] if len(self.tag_stack) > 0 else "EMPTY"}"')
 
   def end(self, tag):
     match (tag, self.tag_stack):
       case 'Project', ['Project']:
-        Project().modified = False
+        Project().set_modified(False)
         self.tag_stack.pop()
         self.builder_id_stack.pop()
       case 'Environments', [*head, 'Environments']:
@@ -215,6 +242,12 @@ class XMLProjectBuilder:
       case 'Request', [*head, 'Request']:
         self.builder_id_stack.pop()
         self.tag_stack.pop()
+      case 'Header', [*head, 'Request']:
+        pass
+      case 'Parameter', [*head, 'Request']:
+        pass
+      case 'Body', [*head, 'Body']:
+        self.tag_stack.pop()
       case _:
         raise etree.ParserError(f'Unknown ending tag "{tag}" with top of tag stack "{self.tag_stack[-1] if len(self.tag_stack) > 0 else "EMPTY"}"')
 
@@ -225,7 +258,11 @@ class XMLProjectBuilder:
         env_id = self.builder_id_stack[-2]
         env_var = Project().environments[env_id].get_variable_by_id(env_var_id)
         env_var.set_value(data)
-      case [*head, 'Project'] | [*head, 'Collections'] | [*head, 'Environments'] | [*head, 'Collection'] | [*head, 'Environment'] | [*head, 'Request']:
+      case [*head, 'Body']:
+        col_id = self.builder_id_stack[-2]
+        req_id = self.builder_id_stack[-1]
+        Project().collections[col_id].requests[req_id].set_body(data)
+      case [*head, 'Project'] | [*head, 'Collections'] | [*head, 'Environments'] | [*head, 'Collection'] | [*head, 'Environment'] | [*head, 'Request'] | [*head, 'Header'] | [*head, 'Parameter']:
         pass
       case _:
         raise etree.ParserError(f'Unexpected data "{data}" with top of tag stack "{self.tag_stack[-1] if len(self.tag_stack) > 0 else "EMPTY"}"')
