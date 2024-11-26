@@ -21,5 +21,4 @@ class TextArea(tk.Text):
     if self._internal_timer is not None:
       self._internal_timer = None
     if self.on_text_updated is not None:
-      print(f"HERE >>> [{self.get('1.0', tk.END)}]")
       self.on_text_updated(event, self.get("1.0", tk.END))

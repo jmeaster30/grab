@@ -58,6 +58,10 @@ class Request:
       self.headers[idx] = (name, value)
 
   @Notifies('Project.HasChanges')
+  def set_headers(self, headers: list[tuple[str, str]]):
+    self.headers = headers
+
+  @Notifies('Project.HasChanges')
   def add_update_parameters(self, idx: Optional[int], name: str, value: str):
     if idx == len(self.parameters) or idx is None:
       self.parameters.append((name, value))
@@ -65,6 +69,9 @@ class Request:
       self.parameters[idx] = (name, value)
 
   @Notifies('Project.HasChanges')
+  def set_parameters(self, parameters: list[tuple[str, str]]):
+    self.parameters = parameters
+
+  @Notifies('Project.HasChanges')
   def set_body(self, text: str):
-    print(f"body: '{text}'")
     self.body = text
