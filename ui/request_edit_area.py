@@ -7,6 +7,7 @@ from typing import Callable
 from lilytk.events import ClassListens
 from lilytk.widgets import ScrollableFrame
 
+from logic.request_engine import RequestEngine
 from model.request import Request, RequestMethod
 from ui.dropdown_select import DropDownSelect
 from ui.layout_config import LayoutConfig
@@ -20,7 +21,7 @@ class RequestEditArea(tk.Frame):
     self.request: Request = request
 
     self.columnconfigure(1, weight=1)
-    self.rowconfigure(2, weight=1)
+    self.rowconfigure(3, weight=1)
 
     self.request_name_var = tk.StringVar(value=self.request.name)
     self.request_name_entry = tk.Entry(self, textvariable=self.request_name_var)
@@ -39,8 +40,17 @@ class RequestEditArea(tk.Frame):
     self.url_entry.grid(row=1, column=1, sticky=tk.EW)
     self.url_entry.bind('<KeyRelease>', self.on_url_change)
 
+    self.control_bar = tk.Frame(self)
+    self.control_bar.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW)
+    
+    self.send_button = tk.Button(self.control_bar, text='Send!!', command=self.send_command)
+    self.send_button.pack(fill=tk.X, side=tk.RIGHT)
+
     self.details = RequestDetails(self, self.request)
-    self.details.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW)
+    self.details.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW)
+
+  def send_command(self):
+    RequestEngine().send_request(self.request)
 
   def on_request_name_change(self, event):
     self.request.set_name(self.request_name_var.get())

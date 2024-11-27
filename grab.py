@@ -8,6 +8,7 @@ from tkinter import ttk
 
 from lilytk.events import ClassListens
 
+from logic.request_engine import RequestEngine
 from model.project import Project
 from ui.control_bar import ControlBar
 from ui.layout_config import LayoutConfig
@@ -25,6 +26,8 @@ class Grab(tk.Tk):
     self.geometry(LayoutConfig().window.size())
     self.rowconfigure(1, weight=1)
     self.columnconfigure(0, weight=1)
+
+    self.engine = RequestEngine()
 
     self.control_bar = ControlBar(self, Project().environments)
     self.control_bar.grid(row=0, column=0, sticky=tk.NSEW)

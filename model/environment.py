@@ -80,6 +80,13 @@ class Environment:
   @Notifies('Environment.VariableRemove')
   def remove_environment_variable(self, idx: int):
     return self.variables.pop(idx)
+  
+  def get_variable(self, key: str) -> Optional[str]:
+    for env_var in self.variables:
+      if env_var.name == key:
+        return env_var.value
+    return None
+
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):

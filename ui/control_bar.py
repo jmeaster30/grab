@@ -3,7 +3,7 @@ import tkinter.messagebox as tkmb
 import tkinter.filedialog as tkfd
 from typing import Optional
 
-from lilytk.events import ClassListens
+from lilytk.events import ClassListens, Notifies
 
 from model.environment import Environment
 from model.project import Project
@@ -81,5 +81,10 @@ class ControlBar(tk.Frame):
   def on_environments_change(self, data):
     self.environment_select.set_options(Project().environments.values())
 
+  @Notifies('ControlBar.ActiveEnvironmentSet')
   def on_active_environment_change(self, selected_environment: Optional[Environment]):
-    pass
+    for environment in Project().environments.values():
+      environment.set_active(False)
+    if selected_environment is not None:
+      selected_environment.set_active(True)
+    return selected_environment
