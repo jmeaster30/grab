@@ -1,5 +1,7 @@
+import json
 import tkinter as tk
 from tkinter import ttk
+import traceback
 from typing import Callable
 
 from lilytk.events import ClassListens
@@ -9,6 +11,7 @@ from model.request import Request, RequestMethod
 from ui.dropdown_select import DropDownSelect
 from ui.layout_config import LayoutConfig
 from ui.text_area import TextArea
+from util.ui_error_handler import UIErrorHandler
 
 @ClassListens('Request.NameUpdated', 'pull_name')
 class RequestEditArea(tk.Frame):
@@ -301,9 +304,20 @@ class RequestBody(tk.Frame):
     super().__init__(root)
     self.request = request
 
-    self.textarea =  TextArea(self, initial_value=request.body, debounce_ms=300, on_text_updated=self.text_area_update)
+    # TODO this should allow sending json, raw bytes, and files at least
+
+    self.textarea =  TextArea(self, initial_value=request.body, 
+                              debounce_ms=300, 
+                              on_text_updated=self.text_area_update,
+                              text_formatter=self.json_formatter)
     self.textarea.pack(fill=tk.BOTH, expand=True)
-    self.textarea.config(tabs=LayoutConfig().text_tab)
+
+  def json_formatter(self, text):
+    try:
+      return json.dumps(json.loads(text), indent=2)
+    except:
+      traceback.print_exc()
+      return text
 
   def text_area_update(self, event, text):
     self.request.set_body(text)
