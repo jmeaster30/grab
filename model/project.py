@@ -173,7 +173,8 @@ class XMLProjectBuilder:
         env_active = bool(attrib['active'])
         env_name = attrib['name']
         env = Project().add_environment(env_id, env_name)
-        env.set_active(env_active)
+        if env_active:
+          env.set_active(env_active)
         self.builder_id_stack.append(env.id)
         self.tag_stack.append(tag)
       case 'EnvironmentVariable', [*head, 'Environment']:

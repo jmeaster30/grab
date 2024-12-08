@@ -14,7 +14,6 @@ class DropDownSelect(ttk.Combobox):
     self.selected_value_var: tk.StringVar = tk.StringVar()
     self.on_selection_change = on_selection_change
     super().__init__(*args, textvariable=self.selected_value_var, **kwargs)
-
     self.set_options(values)
 
     if default_selected is not None:

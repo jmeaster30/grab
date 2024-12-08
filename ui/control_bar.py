@@ -13,6 +13,7 @@ from util.ui_error_handler import UIErrorHandler
 @ClassListens('Environment.NameUpdated', 'on_environments_change')
 @ClassListens('Environment.Add', 'on_environments_change')
 @ClassListens('Environment.Remove', 'on_environments_change')
+@ClassListens('Environment.SetActive', 'update_environment_active')
 @ClassListens('Project.Modified', 'update_buttons')
 class ControlBar(tk.Frame):
   def __init__(self, root, environments: list[Environment]):
@@ -81,8 +82,19 @@ class ControlBar(tk.Frame):
   def on_environments_change(self, data):
     self.environment_select.set_options(Project().environments.values())
 
+  def update_environment_active(self, data):
+    (env_id, is_active) = data
+    environment = Project().environments[env_id]
+    selected_env = self.environment_select.selected()
+    if is_active and (selected_env is None or selected_env.id != env_id):
+      self.environment_select.select(environment)
+    elif selected_env is not None and selected_env.id == env_id:
+      self.environment_select.deselect()
+
   @Notifies('ControlBar.ActiveEnvironmentSet')
   def on_active_environment_change(self, selected_environment: Optional[Environment]):
+    if selected_environment is not None and selected_environment.active:
+      return selected_environment
     for environment in Project().environments.values():
       environment.set_active(False)
     if selected_environment is not None:
