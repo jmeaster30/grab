@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from ui.layout_config import LayoutConfig
 
 class TextArea(tk.Frame):
-  def __init__(self, root, *args, initial_value: str = '', debounce_ms: float = 0.0, on_text_updated: Optional[Callable[[tk.Event, str], None]] = None, text_formatter: Optional[Callable[[str], str]] = None, **kwargs):
+  def __init__(self, root, *args, initial_value: str = '', debounce_ms: float = 0.0, on_text_updated: Optional[Callable[[tk.Event, str], None]] = None, text_formatter: Optional[Callable[[str], str]] = None, readonly: Optional[bool] = None, **kwargs):
     super().__init__(root, *args, **kwargs)
 
     self.debounce_ms = debounce_ms
@@ -17,7 +17,8 @@ class TextArea(tk.Frame):
 
     self.text = tk.Text(self, tabs=LayoutConfig().text_tab)
     self.text.insert(tk.END, initial_value)
-    self.text.bind('<KeyRelease>', self._internal_text_update if debounce_ms == 0.0 else self._internal_debounce_text_update)
+    if readonly is None or not readonly:
+      self.text.bind('<KeyRelease>', self._internal_text_update if debounce_ms == 0.0 else self._internal_debounce_text_update)
     self.text.grid(row=0, column=0, sticky=tk.NSEW)
 
     self.vertical_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.text.yview)
@@ -27,6 +28,10 @@ class TextArea(tk.Frame):
     self.horizontal_scroll = tk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.text.xview)
     self.horizontal_scroll.grid(row=1, column=0, sticky=tk.EW)
     self.text.configure(xscrollcommand=self.horizontal_scroll.set)
+
+  def set_text(self, text: str):
+    self.text.delete('1.0', tk.END)
+    self.text.insert('1.0', text)
 
   def _internal_debounce_text_update(self, event):
     if self._internal_timer is not None:

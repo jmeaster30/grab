@@ -1,10 +1,12 @@
+from datetime import timedelta
 import re
 from typing import Optional
 import requests
 
-from lilytk.events import ClassListens
+from lilytk.events import ClassListens, Notifies
 from lilytk.utils import Singleton
 
+from logic.response import Response
 from model.environment import Environment
 from model.request import Request
 
@@ -17,6 +19,7 @@ class RequestEngine:
   def set_active_environment(self, data):
     self.active_environment = data
 
+  @Notifies('Response.Received')
   def send_request(self, request: Request):
     url: str = self.resolve_environment_variable(request.url)
     
@@ -41,21 +44,23 @@ class RequestEngine:
       body = None
 
     try:
-      response = requests.request(method=request.method.name, 
+      response_data = requests.request(method=request.method.name, 
                                   url=url, 
                                   headers=headers,
                                   params=parameters,
                                   json=body)
       print('= REQUEST ==========================')
-      print(response.request)
+      print(vars(response_data.request))
       print('= RESPONSE =========================')
-      print('URL:', response.url)
-      print('STATUS:', response.status_code)
-      print('ELAPSED:', response.elapsed)
-      print('BODY:\n', response.text)
+      print(vars(response_data))
       print('====================================')
+
+      response = Response(response_data.status_code, response_data.url, response_data.elapsed, response_data.content)
     except Exception as ex:
       print(ex)
+      response = Response(0, '', timedelta(milliseconds=0), ex.__str__())
+
+    return (request.id, response)
 
 
 

@@ -8,6 +8,7 @@ from lilytk.events import ClassListens
 from lilytk.widgets import ScrollableFrame
 
 from logic.request_engine import RequestEngine
+from logic.response import Response
 from model.request import Request, RequestMethod
 from ui.dropdown_select import DropDownSelect
 from ui.layout_config import LayoutConfig
@@ -78,6 +79,9 @@ class RequestDetails(tk.Frame):
 
     self.body_frame = RequestBody(self.notebook, request)
     self.notebook.add(self.body_frame, state=tk.NORMAL, sticky=tk.NSEW, text='Body')
+
+    self.response_frame = RequestResponseView(self.notebook, request.id)
+    self.notebook.add(self.response_frame, state=tk.NORMAL, sticky=tk.NSEW, text='Response')
 
 class RequestHeaders(tk.Frame):
   def __init__(self, root: tk.Misc, request: Request):
@@ -316,7 +320,7 @@ class RequestBody(tk.Frame):
 
     # TODO this should allow sending json, raw bytes, and files at least
 
-    self.textarea =  TextArea(self, initial_value=request.body, 
+    self.textarea = TextArea(self, initial_value=request.body, 
                               debounce_ms=300, 
                               on_text_updated=self.text_area_update,
                               text_formatter=self.json_formatter)
@@ -331,3 +335,40 @@ class RequestBody(tk.Frame):
 
   def text_area_update(self, event, text):
     self.request.set_body(text)
+
+
+@ClassListens('Response.Received', 'set_response')
+class RequestResponseView(tk.Frame):
+  def __init__(self, root: tk.Misc, request_id: str):
+    super().__init__(root)
+    self.request_id = request_id
+
+    self.rowconfigure(1, weight=1)
+    self.columnconfigure(1, weight=1)
+
+
+    self.status_code_var = tk.StringVar(value="Status: ")
+    self.status_code = tk.Label(self, textvariable=self.status_code_var)
+    self.status_code.grid(row=0, column=0, sticky=tk.EW)
+
+    self.url_var = tk.StringVar(value="URL: ")
+    self.url = tk.Label(self, textvariable=self.url_var)
+    self.url.grid(row=0, column=1, sticky=tk.EW)
+
+    self.elapsed_label_var = tk.StringVar(value="Elapsed: ")
+    self.elapsed_label = tk.Label(self, textvariable=self.elapsed_label_var)
+    self.elapsed_label.grid(row=0, column=2, sticky=tk.EW)
+
+    self.body = TextArea(self, readonly=True)
+    self.body.grid(row=1, column=0, columnspan=3)
+
+  def set_response(self, data):
+    (request_id, response) = data
+    if self.request_id != request_id:
+      return
+    self.status_code_var.set(f"Status: {response.status_code}")
+    self.url_var.set(f"URL: {response.url}")
+    print(response.elapsed)
+    self.elapsed_label_var.set(f"Elapsed: {response.elapsed.total_seconds() * 1000} ms")
+    self.body.set_text(response.body)
+
