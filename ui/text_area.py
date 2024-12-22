@@ -1,10 +1,34 @@
+import json
 import tkinter as tk
+import traceback
 from typing import Callable, Optional
+
+from bs4 import BeautifulSoup
 
 from ui.layout_config import LayoutConfig
 
+def JSON_FORMATTER(**kwargs):
+  def formatter(text):
+    try:
+      return json.dumps(json.loads(text), **kwargs)
+    except:
+      traceback.print_exc()
+      return text
+  return formatter
+
+def HTML_FORMATTER(**kwargs):
+  def formatter(text):
+    soup = BeautifulSoup(text, 'html.parser')
+    return soup.prettify(**kwargs)
+  return formatter
+
+CONTENT_TYPE_TO_FORMATTER = {
+  "application/json": JSON_FORMATTER(ident=2),
+  "text/html": HTML_FORMATTER()
+}
+
 class TextArea(tk.Frame):
-  def __init__(self, root, *args, initial_value: str = '', debounce_ms: float = 0.0, on_text_updated: Optional[Callable[[tk.Event, str], None]] = None, text_formatter: Optional[Callable[[str], str]] = None, readonly: Optional[bool] = None, **kwargs):
+  def __init__(self, root, *args, initial_value: str = '', debounce_ms: float = 0.0, on_text_updated: Optional[Callable[[tk.Event, str], None]] = None, text_formatter: Callable[[str], str] = lambda x: x, readonly: Optional[bool] = None, **kwargs):
     super().__init__(root, *args, **kwargs)
 
     self.debounce_ms = debounce_ms
@@ -31,7 +55,13 @@ class TextArea(tk.Frame):
 
   def set_text(self, text: str):
     self.text.delete('1.0', tk.END)
-    self.text.insert('1.0', text)
+    formatted = text
+    if self.text_formatter is not None:
+      formatted = self.text_formatter(text)
+    self.text.insert('1.0', formatted)
+
+  def set_formatter(self, formatter: Callable[[str], str]):
+    self.text_formatter = formatter
 
   def _internal_debounce_text_update(self, event):
     if self._internal_timer is not None:

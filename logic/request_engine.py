@@ -55,10 +55,16 @@ class RequestEngine:
       print(vars(response_data))
       print('====================================')
 
-      response = Response(response_data.status_code, response_data.url, response_data.elapsed, response_data.content)
+      response = Response(
+        status_code=response_data.status_code,
+        reason=response_data.reason,
+        url=response_data.url, 
+        elapsed=response_data.elapsed,
+        headers=response_data.headers,
+        body=response_data.content)
     except Exception as ex:
       print(ex)
-      response = Response(0, '', timedelta(milliseconds=0), ex.__str__())
+      response = Response(body=ex.__str__())
 
     return (request.id, response)
 

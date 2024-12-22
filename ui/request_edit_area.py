@@ -1,7 +1,5 @@
-import json
 import tkinter as tk
 from tkinter import ttk
-import traceback
 from typing import Callable
 
 from lilytk.events import ClassListens
@@ -11,9 +9,8 @@ from logic.request_engine import RequestEngine
 from logic.response import Response
 from model.request import Request, RequestMethod
 from ui.dropdown_select import DropDownSelect
-from ui.layout_config import LayoutConfig
-from ui.text_area import TextArea
-from util.ui_error_handler import UIErrorHandler
+from ui.layout_config import Colors
+from ui.text_area import CONTENT_TYPE_TO_FORMATTER, JSON_FORMATTER, TextArea
 
 @ClassListens('Request.NameUpdated', 'pull_name')
 class RequestEditArea(tk.Frame):
@@ -313,6 +310,7 @@ class RequestParameters(tk.Frame):
     
     self.selected_idxs = []
 
+
 class RequestBody(tk.Frame):
   def __init__(self, root: tk.Misc, request: Request):
     super().__init__(root)
@@ -323,19 +321,63 @@ class RequestBody(tk.Frame):
     self.textarea = TextArea(self, initial_value=request.body, 
                               debounce_ms=300, 
                               on_text_updated=self.text_area_update,
-                              text_formatter=self.json_formatter)
+                              text_formatter=JSON_FORMATTER)
     self.textarea.pack(fill=tk.BOTH, expand=True)
-
-  def json_formatter(self, text):
-    try:
-      return json.dumps(json.loads(text), indent=2)
-    except:
-      traceback.print_exc()
-      return text
 
   def text_area_update(self, event, text):
     self.request.set_body(text)
 
+
+class StatusCodeLabel(tk.Frame):
+  def __init__(self, root: tk.Misc, initial_code: int = 0, initial_reason: str = ""):
+    super().__init__(root)
+
+    self.label_var = tk.StringVar(value=f"Status: {initial_code} ({initial_reason})")
+    self.label = tk.Label(self, textvariable=self.label_var)
+    self.label.pack(fill=tk.BOTH, expand=True)
+  
+  def set_status(self, code: int, reason: str = ""):
+    if reason == "":
+      self.label_var.set(f"Status: {code}")
+    else:
+      self.label_var.set(f"Status: {code} ({reason})")
+
+
+class ReadonlyNameValueRow(tk.Frame):
+  def __init__(self, root: tk.Misc, name: str, value: str, header: bool = False):
+    super().__init__(root)
+
+    self.rowconfigure(0, weight=1)
+    self.columnconfigure(0, weight=1)
+    self.columnconfigure(1, weight=1)
+
+    self.name_var = tk.StringVar(value=name)
+    self.name = tk.Entry(self, textvariable=self.name_var)
+    self.name.configure(state='readonly')
+    if header:
+      self.name.configure(relief='raised')
+    else:
+      self.name.configure(relief='sunken', background=Colors.WHITE) # TODO background doesn't work
+    self.name.grid(row=0, column=0, sticky=tk.EW)
+
+    self.value_var = tk.StringVar(value=value)
+    self.value = tk.Entry(self, textvariable=self.value_var)
+    self.value.configure(state='readonly')
+    if header:
+      self.value.configure(relief='raised')
+    else:
+      self.value.configure(relief='sunken', background=Colors.WHITE) # TODO background doesn't work
+    self.value.grid(row=0, column=1, sticky=tk.EW)
+
+class ReadonlyNameValueGrid(ScrollableFrame):
+  def __init__(self, root: tk.Misc):
+    super().__init__(root, orient=tk.VERTICAL)
+    header = ReadonlyNameValueRow(self, name="Name", value="Value", header=True)
+    header.pack(fill=tk.X, expand=True)
+  
+  def add_entry(self, name: str, value: str):
+    entry = ReadonlyNameValueRow(self, name=name, value=value)
+    entry.pack(fill=tk.X, expand=True)
 
 @ClassListens('Response.Received', 'set_response')
 class RequestResponseView(tk.Frame):
@@ -343,32 +385,42 @@ class RequestResponseView(tk.Frame):
     super().__init__(root)
     self.request_id = request_id
 
-    self.rowconfigure(1, weight=1)
+    self.rowconfigure(2, weight=1)
     self.columnconfigure(1, weight=1)
 
-
-    self.status_code_var = tk.StringVar(value="Status: ")
-    self.status_code = tk.Label(self, textvariable=self.status_code_var)
+    self.status_code = StatusCodeLabel(self)
     self.status_code.grid(row=0, column=0, sticky=tk.EW)
-
-    self.url_var = tk.StringVar(value="URL: ")
-    self.url = tk.Label(self, textvariable=self.url_var)
-    self.url.grid(row=0, column=1, sticky=tk.EW)
 
     self.elapsed_label_var = tk.StringVar(value="Elapsed: ")
     self.elapsed_label = tk.Label(self, textvariable=self.elapsed_label_var)
-    self.elapsed_label.grid(row=0, column=2, sticky=tk.EW)
+    self.elapsed_label.grid(row=0, column=1, sticky=tk.EW)
+
+    self.url_var = tk.StringVar(value="URL: ")
+    self.url = tk.Label(self, justify=tk.CENTER, textvariable=self.url_var)
+    self.url.grid(row=1, column=0, columnspan=2, sticky=tk.EW)
+
+    self.notebook = ttk.Notebook(self)
+    self.notebook.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW)
+
+    self.headers = ReadonlyNameValueGrid(self)
+    # TODO add getter to the full container on ScrollableFrame
+    self.notebook.add(self.headers.full_container, state=tk.NORMAL, text="Headers", sticky=tk.NSEW)
 
     self.body = TextArea(self, readonly=True)
-    self.body.grid(row=1, column=0, columnspan=3)
+    self.notebook.add(self.body, state=tk.NORMAL, text="Body", sticky=tk.NSEW)
 
-  def set_response(self, data):
+  def set_response(self, data: tuple[str, Response]):
     (request_id, response) = data
     if self.request_id != request_id:
       return
-    self.status_code_var.set(f"Status: {response.status_code}")
+    self.status_code.set_status(response.status_code, response.reason)
     self.url_var.set(f"URL: {response.url}")
-    print(response.elapsed)
     self.elapsed_label_var.set(f"Elapsed: {response.elapsed.total_seconds() * 1000} ms")
+
+    content_type = response.headers['Content-Type'].split(';')[0]
+    self.body.set_formatter(CONTENT_TYPE_TO_FORMATTER[content_type])
     self.body.set_text(response.body)
+
+    for name, value in response.headers.items():
+      self.headers.add_entry(name, value)
 

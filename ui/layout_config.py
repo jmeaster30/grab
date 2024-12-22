@@ -11,6 +11,7 @@ class Colors(Enum):
   GREEN = '#00ff00'
   BLUE = '#0000ff'
   PURPLE = '#9f00ff'
+  WHITE = '#ffffff'
   def __str__(self):
     return self.value
 
