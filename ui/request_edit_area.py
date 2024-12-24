@@ -71,6 +71,9 @@ class RequestDetails(tk.Frame):
     self.header_frame = RequestHeaders(self.notebook, request)
     self.notebook.add(self.header_frame, state=tk.NORMAL, sticky=tk.NSEW, text='Headers')
 
+    self.cookie_frame = RequestCookies(self.notebook, request)
+    self.notebook.add(self.cookie_frame, state=tk.NORMAL, sticky=tk.NSEW, text='Cookies')
+
     self.parameter_frame = RequestParameters(self.notebook, request)
     self.notebook.add(self.parameter_frame, state=tk.NORMAL, sticky=tk.NSEW, text='Parameters')
 
@@ -172,6 +175,101 @@ class RequestHeaders(tk.Frame):
 
     for idx in range(0, len(self.header_entry_rows)):
       self.header_entry_rows[idx].idx = idx
+    
+    self.selected_idxs = []
+
+class RequestCookies(tk.Frame):
+  def __init__(self, root: tk.Misc, request: Request):
+    super().__init__(root)
+    self.request = request
+    self.selected_idxs: list[int] = []
+    self.cookie_entry_rows: list[RequestDetailRow] = []
+
+    self.rowconfigure(0, weight=1)
+    self.columnconfigure(0, weight=1)
+
+    self.table = ScrollableFrame(self, orient=tk.VERTICAL)
+    self.table.grid(row=0, column=0, sticky=tk.NSEW)
+
+    self.build_headers()
+
+    for i in range(0, len(self.request.cookies)):
+      row = RequestDetailRow(self.table, self.request, i,
+                            name_getter=(lambda req, idx: req.cookies[idx][0]), name_setter=self.set_cookie_name,
+                            value_getter=(lambda req, idx: req.cookies[idx][1]), value_setter=self.set_cookie_value,
+                            on_selected=self.on_selection)
+      row.pack(fill=tk.X, expand=True)
+      self.cookie_entry_rows.append(row)
+
+    self.build_footer()
+
+  def build_headers(self):
+    headers_row = tk.Frame(self.table)
+    headers_row.columnconfigure(1, weight=1)
+    headers_row.columnconfigure(2, weight=1)
+    selected = tk.BooleanVar(value=False)
+    check_box = tk.Checkbutton(headers_row, variable=selected, offvalue=False, onvalue=True, command=lambda: None)
+    check_box.grid(row=0, column=0, sticky=tk.EW)
+    name_static_var = tk.StringVar(value='Name')
+    name_static_entry = tk.Entry(headers_row, textvariable=name_static_var, state='readonly', relief='raised')
+    name_static_entry.grid(row=0, column=1, sticky=tk.EW)
+    value_static_var = tk.StringVar(value='Value')
+    value_static_entry = tk.Entry(headers_row, textvariable=value_static_var, state='readonly', relief='raised')
+    value_static_entry.grid(row=0, column=2, sticky=tk.EW)
+    headers_row.pack(fill=tk.X, expand=True)
+
+  def build_footer(self):
+    self.footer = tk.Frame(self)
+    self.footer.grid(row=1, column=0, sticky=tk.EW)
+    self.footer.columnconfigure(0, weight=1)
+    self.footer.columnconfigure(1, weight=1)
+
+    self.add_cookie_button = tk.Button(self.footer, text='Add Cookie', command=self.add_cookie)
+    self.add_cookie_button.grid(row=0, column=0, sticky=tk.EW)
+    self.remove_cookie_button = tk.Button(self.footer, text='Remove Cookie(s)', command=self.remove_selected_cookies)
+    self.remove_cookie_button.grid(row=0, column=1, sticky=tk.EW)
+
+  def add_cookie(self):
+    idx = len(self.cookie_entry_rows)
+    self.request.add_update_cookies(idx, '', '')
+    cookie_row = RequestDetailRow(self.table, self.request, idx, 
+                                  name_getter=(lambda req, idx: req.cookies[idx][0]), name_setter=self.set_cookie_name,
+                                  value_getter=(lambda req, idx: req.cookies[idx][1]), value_setter=self.set_cookie_value,
+                                  on_selected=self.on_selection)
+    cookie_row.pack(fill=tk.X, expand=True)
+    self.cookie_entry_rows.append(cookie_row)
+
+  def on_selection(self, idx: int, cookie: tuple[str, str]):
+    if idx in self.selected_idxs:
+      self.selected_idxs.remove(idx)
+    else:
+      self.selected_idxs.append(idx)
+
+  def set_cookie_name(self, req, idx, name):
+    (_, value) = req.cookies[idx]
+    req.add_update_cookies(idx, name, value)
+
+  def set_cookie_value(self, req, idx, value):
+    (name, _) = req.cookies[idx]
+    req.add_update_cookies(idx, name, value)
+
+  def remove_selected_cookies(self):
+    to_not_delete = []
+    to_delete = []
+    for idx in range(0, len(self.request.cookies)):
+      if idx in self.selected_idxs:
+        to_delete.append(self.cookie_entry_rows[idx])
+      else:
+        to_not_delete.append(self.request.cookies[idx])
+
+    self.request.set_cookies(to_not_delete)
+
+    for row in to_delete:
+      self.cookie_entry_rows.remove(row)
+      row.forget()
+
+    for idx in range(0, len(self.cookie_entry_rows)):
+      self.cookie_entry_rows[idx].idx = idx
     
     self.selected_idxs = []
 
@@ -321,10 +419,11 @@ class RequestBody(tk.Frame):
     self.textarea = TextArea(self, initial_value=request.body, 
                               debounce_ms=300, 
                               on_text_updated=self.text_area_update,
-                              text_formatter=JSON_FORMATTER)
+                              text_formatter=JSON_FORMATTER(indent=2))
     self.textarea.pack(fill=tk.BOTH, expand=True)
 
   def text_area_update(self, event, text):
+    print(f"[{text}]")
     self.request.set_body(text)
 
 
@@ -372,12 +471,17 @@ class ReadonlyNameValueRow(tk.Frame):
 class ReadonlyNameValueGrid(ScrollableFrame):
   def __init__(self, root: tk.Misc):
     super().__init__(root, orient=tk.VERTICAL)
-    header = ReadonlyNameValueRow(self, name="Name", value="Value", header=True)
-    header.pack(fill=tk.X, expand=True)
+    self.header = ReadonlyNameValueRow(self, name="Name", value="Value", header=True)
+    self.header.pack(fill=tk.X, expand=True)
   
   def add_entry(self, name: str, value: str):
     entry = ReadonlyNameValueRow(self, name=name, value=value)
     entry.pack(fill=tk.X, expand=True)
+
+  def clear(self):
+    for child in self.winfo_children():
+      if child != self.header:
+        child.destroy()
 
 @ClassListens('Response.Received', 'set_response')
 class RequestResponseView(tk.Frame):
@@ -406,6 +510,9 @@ class RequestResponseView(tk.Frame):
     # TODO add getter to the full container on ScrollableFrame
     self.notebook.add(self.headers.full_container, state=tk.NORMAL, text="Headers", sticky=tk.NSEW)
 
+    self.cookies = ReadonlyNameValueGrid(self)
+    self.notebook.add(self.cookies.full_container, state=tk.NORMAL, text="Cookies", sticky=tk.NSEW)
+
     self.body = TextArea(self, readonly=True)
     self.notebook.add(self.body, state=tk.NORMAL, text="Body", sticky=tk.NSEW)
 
@@ -417,10 +524,15 @@ class RequestResponseView(tk.Frame):
     self.url_var.set(f"URL: {response.url}")
     self.elapsed_label_var.set(f"Elapsed: {response.elapsed.total_seconds() * 1000} ms")
 
-    content_type = response.headers['Content-Type'].split(';')[0]
+    content_type = response.headers['Content-Type'].split(';')[0] if 'Content-Type' in response.headers else 'text/plain' 
     self.body.set_formatter(CONTENT_TYPE_TO_FORMATTER[content_type])
     self.body.set_text(response.body)
 
+    self.headers.clear()
     for name, value in response.headers.items():
       self.headers.add_entry(name, value)
+
+    self.cookies.clear()
+    for name, value in response.cookies.items():
+      self.cookies.add_entry(name, value)
 

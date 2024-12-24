@@ -23,8 +23,9 @@ def HTML_FORMATTER(**kwargs):
   return formatter
 
 CONTENT_TYPE_TO_FORMATTER = {
-  "application/json": JSON_FORMATTER(ident=2),
-  "text/html": HTML_FORMATTER()
+  "application/json": JSON_FORMATTER(indent=2),
+  "text/html": HTML_FORMATTER(),
+  "text/plain": lambda x: x
 }
 
 class TextArea(tk.Frame):

@@ -42,11 +42,14 @@ class Request:
     self.url: str = url
     self.headers: list[tuple[str, str]] = []
     self.parameters: list[tuple[str, str]] = []
+    self.cookies: list[tuple[str, str]] = []
     self.body: str = ''
 
   @Notifies('Project.HasChanges')
   @Notifies('Request.NameUpdated')
   def set_name(self, name: str):
+    if self.name == name:
+      return False
     self.name = name
     return self.id, self.name
   
@@ -55,23 +58,55 @@ class Request:
     if idx == len(self.headers) or idx is None:
       self.headers.append((name, value))
     else:
+      if self.headers[idx] == (name, value):
+        return False
       self.headers[idx] = (name, value)
+    return True
 
   @Notifies('Project.HasChanges')
   def set_headers(self, headers: list[tuple[str, str]]):
+    if self.headers == headers:
+      return False
     self.headers = headers
+    return True
 
   @Notifies('Project.HasChanges')
   def add_update_parameters(self, idx: Optional[int], name: str, value: str):
     if idx == len(self.parameters) or idx is None:
       self.parameters.append((name, value))
     else:
+      if self.parameters[idx] == (name, value):
+        return False
       self.parameters[idx] = (name, value)
+    return True
 
   @Notifies('Project.HasChanges')
   def set_parameters(self, parameters: list[tuple[str, str]]):
+    if self.parameters == parameters:
+      return False
     self.parameters = parameters
+    return True
+
+  @Notifies('Project.HasChanges')
+  def add_update_cookies(self, idx: Optional[int], name: str, value: str):
+    if idx == len(self.cookies) or idx is None:
+      self.cookies.append((name, value))
+    else:
+      if self.cookies[idx] == (name, value):
+        return False
+      self.cookies[idx] = (name, value)
+    return True
+
+  @Notifies('Project.HasChanges')
+  def set_cookies(self, cookies: list[tuple[str, str]]):
+    if self.cookies == cookies:
+      return False
+    self.cookies = cookies
+    return True
 
   @Notifies('Project.HasChanges')
   def set_body(self, text: str):
+    if self.body == text:
+      return False
     self.body = text
+    return True

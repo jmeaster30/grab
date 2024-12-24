@@ -1,6 +1,8 @@
 from datetime import timedelta
+from http.cookiejar import Cookie, CookieJar
 import re
 from typing import Optional
+from urllib.parse import urlparse
 import requests
 
 from lilytk.events import ClassListens, Notifies
@@ -40,15 +42,24 @@ class RequestEngine:
       parameters = None
 
     body: str = self.resolve_environment_variable(request.body)
+    print(f'[{body}]')
     if len(body) == 0:
       body = None
+
+    cookies = CookieJar()
+    request_domain = urlparse(url).netloc
+    for cookie in request.cookies:
+      cookie_name = self.resolve_environment_variable(cookie[0])
+      cookie_value = self.resolve_environment_variable(cookie[1])
+      cookies.set_cookie(Cookie(0, cookie_name, cookie_value, None, False, '', False, False, '', False, False, None, False, None, None, {}))
 
     try:
       response_data = requests.request(method=request.method.name, 
                                   url=url, 
                                   headers=headers,
+                                  cookies=cookies,
                                   params=parameters,
-                                  json=body)
+                                  data=body)
       print('= REQUEST ==========================')
       print(vars(response_data.request))
       print('= RESPONSE =========================')
@@ -61,14 +72,13 @@ class RequestEngine:
         url=response_data.url, 
         elapsed=response_data.elapsed,
         headers=response_data.headers,
+        cookies=response_data.cookies.get_dict(),
         body=response_data.content)
     except Exception as ex:
       print(ex)
       response = Response(body=ex.__str__())
 
     return (request.id, response)
-
-
 
   def resolve_environment_variable(self, value: str) -> str:
     splits = re.split(r'(\{\{(?:[^\}]|\}+[^\}])*?\}+\})', value)

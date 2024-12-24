@@ -23,10 +23,13 @@ class Project:
   def set_modified(self, value):
     match value:
       case bool():
-        self.modified = value
+        self.modified |= value
       case _:
-        self.modified = True
+        self.modified |= value is not None
     return self.modified
+  
+  def clear_modified(self):
+    self.modified = False
 
   @Notifies("Project.HasChanges")
   @Notifies('Project.NameUpdated')
@@ -131,6 +134,13 @@ class Project:
           })
           request_node.append(parameter_node)
 
+        for cookie_name, cookie_value in request.cookies:
+          cookie_node = etree.Element('Cookie', {
+            'name': cookie_name,
+            'value': cookie_value
+          })
+          request_node.append(cookie_node)
+
         if len(request.body) > 0:
           body_node = etree.Element('Body')
           body_node.text = request.body
@@ -141,7 +151,7 @@ class Project:
     doc.append(collections_section_node)
     with open(filename, 'w+') as f:
       f.write(etree.tostring(doc, pretty_print=True, encoding='UTF-8').decode('UTF-8'))
-    self.set_modified(False)
+    self.clear_modified()
 
   def open(self, filename: str):
     self.filename = filename
@@ -202,6 +212,12 @@ class XMLProjectBuilder:
         Project().collections[col_id].add_request(req)
         self.builder_id_stack.append(req.id)
         self.tag_stack.append(tag)
+      case 'Cookie', [*head, 'Request']:
+        col_id = self.builder_id_stack[-2]
+        req_id = self.builder_id_stack[-1]
+        cookie_name = attrib['name']
+        cookie_value = attrib['value']
+        Project().collections[col_id].requests[req_id].add_update_cookies(None, cookie_name, cookie_value)
       case 'Header', [*head, 'Request']:
         col_id = self.builder_id_stack[-2]
         req_id = self.builder_id_stack[-1]
@@ -222,7 +238,7 @@ class XMLProjectBuilder:
   def end(self, tag):
     match (tag, self.tag_stack):
       case 'Project', ['Project']:
-        Project().set_modified(False)
+        Project().clear_modified()
         self.tag_stack.pop()
         self.builder_id_stack.pop()
       case 'Environments', [*head, 'Environments']:
@@ -245,6 +261,8 @@ class XMLProjectBuilder:
         self.tag_stack.pop()
       case 'Header', [*head, 'Request']:
         pass
+      case 'Cookie', [*head, 'Request']:
+        pass
       case 'Parameter', [*head, 'Request']:
         pass
       case 'Body', [*head, 'Body']:
@@ -263,7 +281,7 @@ class XMLProjectBuilder:
         col_id = self.builder_id_stack[-2]
         req_id = self.builder_id_stack[-1]
         Project().collections[col_id].requests[req_id].set_body(data)
-      case [*head, 'Project'] | [*head, 'Collections'] | [*head, 'Environments'] | [*head, 'Collection'] | [*head, 'Environment'] | [*head, 'Request'] | [*head, 'Header'] | [*head, 'Parameter']:
+      case [*head, 'Project'] | [*head, 'Collections'] | [*head, 'Environments'] | [*head, 'Collection'] | [*head, 'Environment'] | [*head, 'Request'] | [*head, 'Header'] | [*head, 'Parameter'] | [*head, 'Cookie']:
         pass
       case _:
         raise etree.ParserError(f'Unexpected data "{data}" with top of tag stack "{self.tag_stack[-1] if len(self.tag_stack) > 0 else "EMPTY"}"')
